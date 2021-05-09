@@ -9,12 +9,24 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 
+#include "reference.hpp"
+
 GLuint load_shader(std::string vs_filename, std::string fs_filename);
 std::string get_file_str(std::string file);
+bool click = false;
 
 void print_vec3(glm::vec3 v)
 {
 	std::cout << v[0] << " " << v[1] << " " << v[2] << "\n";
+}
+
+void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
+{
+	if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS && click == false) {
+		click = true;
+	} else {
+		click = false;
+	}
 }
 
 int main()
@@ -23,10 +35,12 @@ int main()
 	const int D_HEIGHT = 720;
 	glfwInit();
 	glfwWindowHint(GLFW_SAMPLES, 4);
-	GLFWwindow *wind = glfwCreateWindow(D_WIDTH, D_HEIGHT, "man", 0, 0);
-	glfwMakeContextCurrent(wind);
+	GLFWwindow *window = glfwCreateWindow(D_WIDTH, D_HEIGHT, "man", 0, 0);
+	glfwMakeContextCurrent(window);
 	glewInit();
 	glEnable(GL_MULTISAMPLE);
+
+	glfwSetMouseButtonCallback(window, mouse_button_callback);
 
 	float FOV = 90;
 	glm::mat4 proj = glm::perspective(glm::radians(FOV), (float) D_WIDTH / (float) D_HEIGHT, 0.1f, 100.0f);
@@ -40,7 +54,7 @@ int main()
 	float travel_speed = 0.5;
 	float delay = 0.1;
 	double mouse_x, mouse_y;
-	glfwSetInputMode(wind, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
 	glm::mat4 mvp;
 
@@ -140,13 +154,11 @@ int main()
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	int pw, ph, pn;
 	unsigned char* pdata = stbi_load("Pistol.png", &pw, &ph, &pn, 0);
-	std::cout << "line 141\n";
 	if (data) {
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, pw, ph, 0, GL_RGBA, GL_UNSIGNED_BYTE, pdata);
 	} else {
 		std::cout << "Failed to load Pistol.png" << "\n";
 	}
-	std::cout << "line 147\n";
 	stbi_image_free(pdata);
 
 	float gun_2_vs[] = {
@@ -184,12 +196,14 @@ int main()
 	}
 	stbi_image_free(ppdata);
 
-	while (!glfwWindowShouldClose(wind)) {
+    Model monkey("obj.obj");
+
+	while (!glfwWindowShouldClose(window)) {
 		glClearColor(0.0, 0.5, 0.9, 1.0);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		glfwPollEvents();
 
-		glfwGetCursorPos(wind, &mouse_x, &mouse_y);
+		glfwGetCursorPos(window, &mouse_x, &mouse_y);
 		horizontal_angle = mouse_speed * delay * float(D_WIDTH / 2 - mouse_x);
 		vertical_angle = mouse_speed * delay * float(D_HEIGHT / 2 - mouse_y);
 		glm::vec3 direction(cos(vertical_angle) * sin(horizontal_angle),
@@ -198,16 +212,16 @@ int main()
 		glm::vec3 right(sin(horizontal_angle - 3.14f / 2.0f),
 				0,
 				cos(horizontal_angle - 3.14f / 2.0f));
-		if (glfwGetKey(wind, GLFW_KEY_W) == GLFW_PRESS) {
+		if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
 			pos += direction * delay * travel_speed;
 		}
-		if (glfwGetKey(wind, GLFW_KEY_S) == GLFW_PRESS) {
+		if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
 			pos -= direction * delay * travel_speed;
 		}
-		if (glfwGetKey(wind, GLFW_KEY_D) == GLFW_PRESS) {
+		if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
 			pos += right * delay * travel_speed;
 		}
-		if (glfwGetKey(wind, GLFW_KEY_A) == GLFW_PRESS) {
+		if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
 			pos -= right * delay * travel_speed;
 		}
 
@@ -215,12 +229,12 @@ int main()
 		view = glm::lookAt(pos, pos + direction, up);
 
 		mvp = proj * view * model;
+        monkey.draw(pos, pos, model, view, proj);
 
 		glUseProgram(flatpolygon_program);
-
 		glBindVertexArray(VAO);
 		glBindBuffer(GL_ARRAY_BUFFER, VBO);
-		glDrawArrays(GL_QUADS, 0, sizeof(vs) / sizeof(vs[0]));
+		//glDrawArrays(GL_QUADS, 0, sizeof(vs) / sizeof(vs[0]));
 		glUniformMatrix4fv(flatpolygon_mvp_l, 1, GL_FALSE, &mvp[0][0]);
 
 		glBindTexture(GL_TEXTURE_2D, texture);
@@ -230,9 +244,9 @@ int main()
 		glDrawArrays(GL_QUADS, 0, 12);
 		glUniformMatrix4fv(image_mvp_l, 1, GL_FALSE, &mvp[0][0]);
 
-
 		glUseProgram(twodimageshaderprogram);
-		if (glfwGetMouseButton(wind, GLFW_MOUSE_BUTTON_LEFT) != GLFW_PRESS) {
+		//if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) != GLFW_PRESS) {
+        if (!click) {
 			glBindTexture(GL_TEXTURE_2D, gun_texture);
 			glBindVertexArray(gun_VAO);
 			glBindBuffer(GL_ARRAY_BUFFER, gun_VBO);
@@ -244,6 +258,7 @@ int main()
 			glBindBuffer(GL_ARRAY_BUFFER, gun_2_VBO);
 			glDrawArrays(GL_QUADS, 0, 12);
 		}
+		click = false;
 
 		glUseProgram(twodshader);
 		glBegin(GL_LINES);
@@ -253,7 +268,7 @@ int main()
 		glVertex2f(0.0, 0.01);
 		glEnd();
 
-		glfwSwapBuffers(wind);
+		glfwSwapBuffers(window);
 	}
 }
 

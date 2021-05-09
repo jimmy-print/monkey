@@ -1,0 +1,25 @@
+#version 330 core
+in vec3 NORMAL;
+in vec3 FRAGPOS;
+out vec4 result;
+
+uniform vec3 lightpos;
+uniform vec3 viewpos;
+uniform vec3 lightcolor;
+uniform vec3 objectcolor;
+uniform float ambient_strength;
+
+void main()
+{
+	vec3 ambient = 0.2 * lightcolor;
+	vec3 norm = normalize(NORMAL);
+	vec3 lightdir = normalize(lightpos - FRAGPOS);
+	float diff = max(dot(norm, lightdir), 0.0);
+	vec3 diffuse = diff * lightcolor;
+	float specularstrength = 0.1;
+	vec3 viewdir = normalize(viewpos - FRAGPOS);
+	vec3 reflectdir = reflect(-lightdir, norm);
+	float spec = pow(max(dot(viewdir, reflectdir), 0.0), 32);
+	vec3 specular = specularstrength * spec * lightcolor;
+	result = vec4((ambient + diffuse + specular) * objectcolor, 1.0);
+}
