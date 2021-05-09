@@ -1,0 +1,333 @@
+#include <GL/glew.h>
+#include <GLFW/glfw3.h>
+#include <glm/gtc/matrix_transform.hpp>
+#include <string>
+#include <iostream>
+#include <vector>
+#include <fstream>
+
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
+
+GLuint load_shader(std::string vs_filename, std::string fs_filename);
+std::string get_file_str(std::string file);
+
+void print_vec3(glm::vec3 v)
+{
+	std::cout << v[0] << " " << v[1] << " " << v[2] << "\n";
+}
+
+int main()
+{
+	const int D_WIDTH = 1280;
+	const int D_HEIGHT = 720;
+	glfwInit();
+	glfwWindowHint(GLFW_SAMPLES, 4);
+	GLFWwindow *wind = glfwCreateWindow(D_WIDTH, D_HEIGHT, "man", 0, 0);
+	glfwMakeContextCurrent(wind);
+	glewInit();
+	glEnable(GL_MULTISAMPLE);
+
+	float FOV = 90;
+	glm::mat4 proj = glm::perspective(glm::radians(FOV), (float) D_WIDTH / (float) D_HEIGHT, 0.1f, 100.0f);
+	glm::vec3 pos(0, 0.5, 3);
+	glm::mat4 view = glm::lookAt(pos,
+				     glm::vec3(0, 0, 0),
+				     glm::vec3(0, 1, 0));
+	glm::mat4 model(1.0f);
+	float horizontal_angle, vertical_angle;
+	float mouse_speed = 0.01;
+	float travel_speed = 0.5;
+	float delay = 0.1;
+	double mouse_x, mouse_y;
+	glfwSetInputMode(wind, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+
+	glm::mat4 mvp;
+
+	glEnable(GL_DEPTH_TEST);
+	glDepthFunc(GL_LESS);
+
+	GLuint flatpolygon_program = load_shader("vs", "fs");
+	GLuint flatpolygon_mvp_l = glGetUniformLocation(flatpolygon_program, "mvp");
+
+	float vs[] = {
+		0.0, 0.0, 0.0,
+		0.0, 1.0, 0.0,
+		1.0, 1.0, 0.0,
+		1.0, 0.0, 0.0};
+	GLuint VAO, VBO;
+	glGenVertexArrays(1, &VAO);
+	glBindVertexArray(VAO);
+
+	glGenBuffers(1, &VBO);
+	glBindBuffer(GL_ARRAY_BUFFER, VBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(vs), vs, GL_STATIC_DRAW);
+
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*) 0);
+	glEnableVertexAttribArray(0);
+
+	// image section
+	GLuint image_program = load_shader("imagevs", "imagefs");
+	GLuint image_mvp_l = glGetUniformLocation(image_program, "mvp");
+	float image_vs[] = {
+		-1000.0, 0.0, -1000.0,    0.0, 0.0,
+		1000.0, 0.0, -1000.0,   0.0, 100.0,
+		1000.0, 0.0, 1000.0,  100.0, 100.0,
+		-1000.0, 0.0, 1000.0,   100.0, 0.0
+	};
+	GLuint image_VAO, image_VBO;
+	glGenVertexArrays(1, &image_VAO);
+	glBindVertexArray(image_VAO);
+
+	glGenBuffers(1, &image_VBO);
+	glBindBuffer(GL_ARRAY_BUFFER, image_VBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(image_vs), image_vs, GL_STATIC_DRAW);
+
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*) (0 * sizeof(float)));
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*) (3 * sizeof(float)));
+	glEnableVertexAttribArray(1);
+
+	stbi_set_flip_vertically_on_load(true);
+	GLuint texture;
+	glGenTextures(1, &texture);
+	glBindTexture(GL_TEXTURE_2D, texture);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	int w, h, n;
+	unsigned char* data = stbi_load("Grass.jpg", &w, &h, &n, 0);
+	if (data) {
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, w, h, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+	} else {
+		std::cout << "Failed to load Grass.jpg" << "\n";
+	}
+	stbi_image_free(data);
+
+
+	GLuint twodshader = load_shader("2dvs", "2dfs");
+
+
+	GLuint twodimageshaderprogram = load_shader("2dimageshadervs", "2dimageshaderfs");
+	float gun_vs[] = {
+		0.2, -1.0,  0.0, 0.0,
+		0.2, -0.2,  0.0, 1.0,
+		0.8, -0.2,  1.0, 1.0,
+		0.8, -1.0,  1.0, 0.0
+	};
+	GLuint gun_VAO, gun_VBO;
+	glGenVertexArrays(1, &gun_VAO);
+	glBindVertexArray(gun_VAO);
+
+	glGenBuffers(1, &gun_VBO);
+	glBindBuffer(GL_ARRAY_BUFFER, gun_VBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(gun_vs), gun_vs, GL_STATIC_DRAW);
+
+	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*) (0 * sizeof(float)));
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*) (2 * sizeof(float)));
+	glEnableVertexAttribArray(1);
+
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	GLuint gun_texture;
+	glGenTextures(1, &gun_texture);
+	glBindTexture(GL_TEXTURE_2D, gun_texture);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	int pw, ph, pn;
+	unsigned char* pdata = stbi_load("Pistol.png", &pw, &ph, &pn, 0);
+	std::cout << "line 141\n";
+	if (data) {
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, pw, ph, 0, GL_RGBA, GL_UNSIGNED_BYTE, pdata);
+	} else {
+		std::cout << "Failed to load Pistol.png" << "\n";
+	}
+	std::cout << "line 147\n";
+	stbi_image_free(pdata);
+
+	float gun_2_vs[] = {
+		0.2, -1.0,  0.0, 0.0,
+		0.2, -0.2,  0.0, 1.0,
+		0.8, -0.2,  1.0, 1.0,
+		0.8, -1.0,  1.0, 0.0
+	};
+	GLuint gun_2_VAO, gun_2_VBO;
+	glGenVertexArrays(1, &gun_2_VAO);
+	glBindVertexArray(gun_2_VAO);
+
+	glGenBuffers(1, &gun_2_VBO);
+	glBindBuffer(GL_ARRAY_BUFFER, gun_2_VBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(gun_2_vs), gun_2_vs, GL_STATIC_DRAW);
+
+	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*) (0 * sizeof(float)));
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*) (2 * sizeof(float)));
+	glEnableVertexAttribArray(1);
+
+	GLuint gun_2_texture;
+	glGenTextures(1, &gun_2_texture);
+	glBindTexture(GL_TEXTURE_2D, gun_2_texture);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	int ppw, pph, ppn;
+	unsigned char* ppdata = stbi_load("Pistol-2.png", &ppw, &pph, &ppn, 0);
+	if (data) {
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, ppw, pph, 0, GL_RGBA, GL_UNSIGNED_BYTE, ppdata);
+	} else {
+		std::cout << "Failed to load Pistol-2.png" << "\n";
+	}
+	stbi_image_free(ppdata);
+
+	while (!glfwWindowShouldClose(wind)) {
+		glClearColor(0.0, 0.5, 0.9, 1.0);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		glfwPollEvents();
+
+		glfwGetCursorPos(wind, &mouse_x, &mouse_y);
+		horizontal_angle = mouse_speed * delay * float(D_WIDTH / 2 - mouse_x);
+		vertical_angle = mouse_speed * delay * float(D_HEIGHT / 2 - mouse_y);
+		glm::vec3 direction(cos(vertical_angle) * sin(horizontal_angle),
+				    sin(vertical_angle),
+				    cos(vertical_angle) * cos(horizontal_angle));
+		glm::vec3 right(sin(horizontal_angle - 3.14f / 2.0f),
+				0,
+				cos(horizontal_angle - 3.14f / 2.0f));
+		if (glfwGetKey(wind, GLFW_KEY_W) == GLFW_PRESS) {
+			pos += direction * delay * travel_speed;
+		}
+		if (glfwGetKey(wind, GLFW_KEY_S) == GLFW_PRESS) {
+			pos -= direction * delay * travel_speed;
+		}
+		if (glfwGetKey(wind, GLFW_KEY_D) == GLFW_PRESS) {
+			pos += right * delay * travel_speed;
+		}
+		if (glfwGetKey(wind, GLFW_KEY_A) == GLFW_PRESS) {
+			pos -= right * delay * travel_speed;
+		}
+
+		glm::vec3 up = glm::cross(right, direction);
+		view = glm::lookAt(pos, pos + direction, up);
+
+		mvp = proj * view * model;
+
+		glUseProgram(flatpolygon_program);
+
+		glBindVertexArray(VAO);
+		glBindBuffer(GL_ARRAY_BUFFER, VBO);
+		glDrawArrays(GL_QUADS, 0, sizeof(vs) / sizeof(vs[0]));
+		glUniformMatrix4fv(flatpolygon_mvp_l, 1, GL_FALSE, &mvp[0][0]);
+
+		glBindTexture(GL_TEXTURE_2D, texture);
+		glBindVertexArray(image_VAO);
+		glBindBuffer(GL_ARRAY_BUFFER, image_VBO);
+		glUseProgram(image_program);
+		glDrawArrays(GL_QUADS, 0, 12);
+		glUniformMatrix4fv(image_mvp_l, 1, GL_FALSE, &mvp[0][0]);
+
+
+		glUseProgram(twodimageshaderprogram);
+		if (glfwGetMouseButton(wind, GLFW_MOUSE_BUTTON_LEFT) != GLFW_PRESS) {
+			glBindTexture(GL_TEXTURE_2D, gun_texture);
+			glBindVertexArray(gun_VAO);
+			glBindBuffer(GL_ARRAY_BUFFER, gun_VBO);
+			glDrawArrays(GL_QUADS, 0, 12);
+		} else {
+
+			glBindTexture(GL_TEXTURE_2D, gun_2_texture);
+			glBindVertexArray(gun_2_VAO);
+			glBindBuffer(GL_ARRAY_BUFFER, gun_2_VBO);
+			glDrawArrays(GL_QUADS, 0, 12);
+		}
+
+		glUseProgram(twodshader);
+		glBegin(GL_LINES);
+		glVertex2f(-0.01, 0.0);
+		glVertex2f(0.01, 0.0);
+		glVertex2f(0.0, -0.01);
+		glVertex2f(0.0, 0.01);
+		glEnd();
+
+		glfwSwapBuffers(wind);
+	}
+}
+
+GLuint load_shader(std::string vs_filename, std::string fs_filename)
+{
+	const char *vs_cstr;
+	const char *fs_cstr;
+	std::string vs_str = get_file_str(vs_filename);
+	std::string fs_str = get_file_str(fs_filename);
+	vs_cstr = vs_str.c_str();
+	fs_cstr = fs_str.c_str();
+
+	GLuint program;
+
+	program = glCreateProgram();
+
+	GLuint vs, fs;
+	vs = glCreateShader(GL_VERTEX_SHADER);
+	glShaderSource(vs, 1, &vs_cstr, NULL);
+	glCompileShader(vs);
+
+	fs = glCreateShader(GL_FRAGMENT_SHADER);
+	glShaderSource(fs, 1, &fs_cstr, NULL);
+	glCompileShader(fs);
+
+	// Check for errors
+	GLint vs_success, fs_success;
+	vs_success = 0;
+	fs_success = 0;
+	glGetShaderiv(vs, GL_COMPILE_STATUS, &vs_success);
+	glGetShaderiv(fs, GL_COMPILE_STATUS, &fs_success);
+
+	if (vs_success == GL_FALSE) {
+		GLint vs_max_len;
+		glGetShaderiv(vs, GL_INFO_LOG_LENGTH, &vs_max_len);
+		std::vector<GLchar> vs_error_log(vs_max_len);
+		glGetShaderInfoLog(vs, vs_max_len, &vs_max_len, &vs_error_log[0]);
+
+		std::cout << "ERROR: Vertex shader compilation\n";
+		for (auto c : vs_error_log) {
+			std::cout << c;
+		}
+		std::cout << "\n";
+	}
+	if (fs_success == GL_FALSE) {
+		GLint fs_max_len;
+		glGetShaderiv(fs, GL_INFO_LOG_LENGTH, &fs_max_len);
+		std::vector<GLchar> fs_error_log(fs_max_len);
+		glGetShaderInfoLog(fs, fs_max_len, &fs_max_len, &fs_error_log[0]);
+
+		std::cout << "ERROR: Fragment shader compilation\n";
+		for (auto c : fs_error_log) {
+			std::cout << c;
+		}
+	}
+
+	glAttachShader(program, vs);
+	glAttachShader(program, fs);
+	glLinkProgram(program);
+	glValidateProgram(program);
+
+	glDeleteShader(vs);
+	glDeleteShader(fs);
+
+	return program;
+}
+
+std::string get_file_str(std::string file)
+{
+	std::ifstream f(file);
+	if (f.fail()) {
+		std::cout << file << " opening failed\n";
+	}
+	std::string s((std::istreambuf_iterator<char>(f)),
+		      (std::istreambuf_iterator<char>()));
+	return s;
+}
