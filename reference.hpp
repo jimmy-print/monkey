@@ -9,6 +9,8 @@
 #include <fstream>
 #include <sstream>
 
+#include "utils.hpp"
+
 GLuint load_shader(std::string vs_filename, std::string fs_filename);
 std::string get_file_str(std::string file);
 void print_vec3(glm::vec3 vec3);
@@ -219,11 +221,11 @@ public:
 
         for (int i = 0; i < vertices.size(); i++) {
             if ((i - 1) % 3 == 0) {
-                vertices[i] += 1.0;
+//                vertices[i] += 1.0;
+    pfa(vertices);
+    }
 }
-        }
-
-	}
+}
 
 	void draw(glm::vec3 pos, glm::vec3 lightpos, glm::mat4 model, glm::mat4 view, glm::mat4 proj)
 	{

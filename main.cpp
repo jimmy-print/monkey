@@ -257,7 +257,7 @@ int main()
 		glBindVertexArray(image_VAO);
 		glBindBuffer(GL_ARRAY_BUFFER, image_VBO);
 		glUseProgram(image_program);
-		glDrawArrays(GL_QUADS, 0, 12);
+//		glDrawArrays(GL_QUADS, 0, 12);
 		glUniformMatrix4fv(image_mvp_l, 1, GL_FALSE, &mvp[0][0]);
 
 		glUseProgram(twodimageshaderprogram);                    d = glm::vec3(0, 0.5, 0);
@@ -278,11 +278,13 @@ int main()
         glEnd();
         glUniformMatrix4fv(immediate_mvp_l, 1, GL_FALSE, &mvp[0][0]);
 
+/*
         std::cout << "X: " << sin(horizontal_angle) << " ";
         std::cout << "Y: " << sin(vertical_angle) << " ";
         std::cout << "Z: " << cos(horizontal_angle) << " | ";
 
         std::cout << "Pos: " << pos[0] << " " << pos[1] << " " << pos[2] << "\n";
+*/
 
         glm::vec3 d(
             sin(horizontal_angle),
@@ -304,17 +306,19 @@ int main()
             std::vector<glm::vec3> triangle_vec3s;
             std::vector<float> VERTEX;
 
-            for (int i = 0; i < monkey.vertices.size(); i++) {
-                VERTEX.push_back(monkey.vertices[i]);
+            for (int i = 1; i <= monkey.vertices.size(); i++) {
+                VERTEX.push_back(monkey.vertices[i - 1]);
+				std::cout << "	value: " << monkey.vertices[i] << " index: " << i <<  "\n";
                 if (i % 3 == 0) {
+					pfa(VERTEX);
                     triangle_vec3s.push_back(glm::vec3(VERTEX[0], VERTEX[1], VERTEX[2])); 
-                    VERTEX = {};
+                    VERTEX.clear();
                     if (i % 9 == 0) {
                         float ptr;
                         if (glm::intersectRayTriangle(pos, d, triangle_vec3s[0], triangle_vec3s[1], triangle_vec3s[2], result, ptr)) {
                            return 0;
                         }
-                        triangle_vec3s = {};
+                        triangle_vec3s.clear();
                     }
                 }
             }
