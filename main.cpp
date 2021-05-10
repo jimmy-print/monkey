@@ -1,6 +1,7 @@
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 #include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtx/intersect.hpp>
 #include <string>
 #include <iostream>
 #include <vector>
@@ -11,9 +12,14 @@
 
 #include "reference.hpp"
 
+#include <cmath>
+
+#define ORIGIN glVertex3f(0.0, 0.0, 0.0);
+
 GLuint load_shader(std::string vs_filename, std::string fs_filename);
 std::string get_file_str(std::string file);
 bool click = false;
+glm::vec2 result;
 
 void print_vec3(glm::vec3 v)
 {
@@ -42,11 +48,11 @@ int main()
 
 	glfwSetMouseButtonCallback(window, mouse_button_callback);
 
-	float FOV = 90;
+	float FOV = 70;
 	glm::mat4 proj = glm::perspective(glm::radians(FOV), (float) D_WIDTH / (float) D_HEIGHT, 0.1f, 100.0f);
-	glm::vec3 pos(0, 0.5, 3);
+	glm::vec3 pos(0, 0.5, 0);
 	glm::mat4 view = glm::lookAt(pos,
-				     glm::vec3(0, 0, 0),
+				     glm::vec3(0, 0, -5),
 				     glm::vec3(0, 1, 0));
 	glm::mat4 model(1.0f);
 	float horizontal_angle, vertical_angle;
@@ -198,6 +204,16 @@ int main()
 
     Model monkey("obj.obj");
 
+	GLuint immediate = load_shader("immediatevs", "immediatefs");
+	GLuint immediate_mvp_l = glGetUniformLocation(immediate, "mvp");
+
+
+	// alternative variables for 3d vector spherical bruh
+	float yaw = -90.0f;
+	float pitch = 0.f;
+
+	glm::vec3 d;
+
 	while (!glfwWindowShouldClose(window)) {
 		glClearColor(0.0, 0.5, 0.9, 1.0);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -244,20 +260,67 @@ int main()
 		glDrawArrays(GL_QUADS, 0, 12);
 		glUniformMatrix4fv(image_mvp_l, 1, GL_FALSE, &mvp[0][0]);
 
-		glUseProgram(twodimageshaderprogram);
+		glUseProgram(twodimageshaderprogram);                    d = glm::vec3(0, 0.5, 0);
+
 		//if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) != GLFW_PRESS) {
+
+        glUseProgram(immediate);
+        glBegin(GL_LINES);
+        ORIGIN
+        glVertex3f(0.0, 10.0, 0.0);
+        
+        ORIGIN
+        glVertex3f(10.0, 0.0, 0.0);
+
+        ORIGIN
+        glVertex3f(0.0, 0.0, 10.0);
+
+        glEnd();
+        glUniformMatrix4fv(immediate_mvp_l, 1, GL_FALSE, &mvp[0][0]);
+
+        std::cout << "X: " << sin(horizontal_angle) << " ";
+        std::cout << "Y: " << sin(vertical_angle) << " ";
+        std::cout << "Z: " << cos(horizontal_angle) << " | ";
+
+        std::cout << "Pos: " << pos[0] << " " << pos[1] << " " << pos[2] << "\n";
+
+        glm::vec3 d(
+            sin(horizontal_angle),
+            sin(vertical_angle),
+            cos(horizontal_angle));
+
+        glUseProgram(twodimageshaderprogram);
         if (!click) {
 			glBindTexture(GL_TEXTURE_2D, gun_texture);
 			glBindVertexArray(gun_VAO);
 			glBindBuffer(GL_ARRAY_BUFFER, gun_VBO);
 			glDrawArrays(GL_QUADS, 0, 12);
 		} else {
-
 			glBindTexture(GL_TEXTURE_2D, gun_2_texture);
 			glBindVertexArray(gun_2_VAO);
 			glBindBuffer(GL_ARRAY_BUFFER, gun_2_VBO);
 			glDrawArrays(GL_QUADS, 0, 12);
+
+            std::vector<glm::vec3> triangle_vec3s;
+            std::vector<float> VERTEX;
+
+            for (int i = 0; i < monkey.vertices.size(); i++) {
+                VERTEX.push_back(monkey.vertices[i]);
+                if (i % 3 == 0) {
+                    triangle_vec3s.push_back(glm::vec3(VERTEX[0], VERTEX[1], VERTEX[2])); 
+                    VERTEX = {};
+                    if (i % 9 == 0) {
+                        float ptr;
+                        if (glm::intersectRayTriangle(pos, d, triangle_vec3s[0], triangle_vec3s[1], triangle_vec3s[2], result, ptr)) {
+                           return 0;
+                        }
+                        triangle_vec3s = {};
+                    }
+                }
+            }
+
 		}
+        //std::cout << d[0] << " " << d[1] << " " << d[2] << "\n";
 		click = false;
 
 		glUseProgram(twodshader);
