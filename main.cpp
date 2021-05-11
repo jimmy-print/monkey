@@ -257,7 +257,7 @@ int main()
 		glBindVertexArray(image_VAO);
 		glBindBuffer(GL_ARRAY_BUFFER, image_VBO);
 		glUseProgram(image_program);
-//		glDrawArrays(GL_QUADS, 0, 12);
+		glDrawArrays(GL_QUADS, 0, 12);
 		glUniformMatrix4fv(image_mvp_l, 1, GL_FALSE, &mvp[0][0]);
 
 		glUseProgram(twodimageshaderprogram);                    d = glm::vec3(0, 0.5, 0);
@@ -308,9 +308,9 @@ int main()
 
             for (int i = 1; i <= monkey.vertices.size(); i++) {
                 VERTEX.push_back(monkey.vertices[i - 1]);
-				std::cout << "	value: " << monkey.vertices[i] << " index: " << i <<  "\n";
+//				std::cout << "	value: " << monkey.vertices[i] << " index: " << i <<  "\n";
                 if (i % 3 == 0) {
-					pfa(VERTEX);
+					//pfa(VERTEX);
                     triangle_vec3s.push_back(glm::vec3(VERTEX[0], VERTEX[1], VERTEX[2])); 
                     VERTEX.clear();
                     if (i % 9 == 0) {
