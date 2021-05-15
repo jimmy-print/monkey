@@ -15,6 +15,7 @@
 #include <cmath>
 
 #define ORIGIN glVertex3f(0.0, 0.0, 0.0);
+#define PI 3.141592653589793
 
 GLuint load_shader(std::string vs_filename, std::string fs_filename);
 std::string get_file_str(std::string file);
@@ -33,6 +34,10 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
 	} else {
 		click = false;
 	}
+}
+
+float rad(float deg) {
+	return deg * PI / 180;
 }
 
 int main()
@@ -56,6 +61,7 @@ int main()
 				     glm::vec3(0, 1, 0));
 	glm::mat4 model(1.0f);
 	float horizontal_angle, vertical_angle;
+	float horizontal_angle_deg, vertical_angle_deg;
 	float mouse_speed = 0.01;
 	float travel_speed = 0.5;
 	float delay = 0.1;
@@ -125,9 +131,7 @@ int main()
 	}
 	stbi_image_free(data);
 
-
 	GLuint twodshader = load_shader("2dvs", "2dfs");
-
 
 	GLuint twodimageshaderprogram = load_shader("2dimageshadervs", "2dimageshaderfs");
 	float gun_vs[] = {
@@ -207,12 +211,10 @@ int main()
 	GLuint immediate = load_shader("immediatevs", "immediatefs");
 	GLuint immediate_mvp_l = glGetUniformLocation(immediate, "mvp");
 
+	glm::vec3 d;  // 3D unit direction vector
+	// Converted from spherical coordinate system variables (horizontal_angle, vertical_angle)
 
-	// alternative variables for 3d vector spherical bruh
-	float yaw = -90.0f;
-	float pitch = 0.f;
-
-	glm::vec3 d;
+	glm::vec3 lightpos(0.0, 10.0, 0.0);
 
 	while (!glfwWindowShouldClose(window)) {
 		glClearColor(0.0, 0.5, 0.9, 1.0);
@@ -222,6 +224,21 @@ int main()
 		glfwGetCursorPos(window, &mouse_x, &mouse_y);
 		horizontal_angle = mouse_speed * delay * float(D_WIDTH / 2 - mouse_x);
 		vertical_angle = mouse_speed * delay * float(D_HEIGHT / 2 - mouse_y);
+		horizontal_angle_deg = horizontal_angle * 180 / PI;
+		vertical_angle_deg = vertical_angle * 180 / PI;
+		if (vertical_angle_deg < -90.0f) {
+			mouse_y = (D_HEIGHT / 2) - (rad(-90.0f) / (mouse_speed * delay));
+			vertical_angle = rad(-90.0f);
+			glfwSetCursorPos(window, mouse_x, mouse_y);
+		}
+		if (vertical_angle_deg > 90.0f) {
+			mouse_y = (D_HEIGHT / 2) - (rad(90.0f) / (mouse_speed * delay));
+			vertical_angle = rad(90.0f);
+			glfwSetCursorPos(window, mouse_x, mouse_y);
+		}
+
+		printf("vertical_angle: %f, mouse_y: %f\n", vertical_angle, mouse_y);
+
 		glm::vec3 direction(cos(vertical_angle) * sin(horizontal_angle),
 				    sin(vertical_angle),
 				    cos(vertical_angle) * cos(horizontal_angle));
@@ -245,12 +262,12 @@ int main()
 		view = glm::lookAt(pos, pos + direction, up);
 
 		mvp = proj * view * model;
-        monkey.draw(pos, pos, model, view, proj);
+        monkey.draw(pos, lightpos, model, view, proj);
 
 		glUseProgram(flatpolygon_program);
 		glBindVertexArray(VAO);
 		glBindBuffer(GL_ARRAY_BUFFER, VBO);
-		//glDrawArrays(GL_QUADS, 0, sizeof(vs) / sizeof(vs[0]));
+		glDrawArrays(GL_QUADS, 0, sizeof(vs) / sizeof(vs[0]));
 		glUniformMatrix4fv(flatpolygon_mvp_l, 1, GL_FALSE, &mvp[0][0]);
 
 		glBindTexture(GL_TEXTURE_2D, texture);
@@ -260,14 +277,8 @@ int main()
 		glDrawArrays(GL_QUADS, 0, 12);
 		glUniformMatrix4fv(image_mvp_l, 1, GL_FALSE, &mvp[0][0]);
 
-		glUseProgram(twodimageshaderprogram);                    d = glm::vec3(0, 0.5, 0);
-
-		//if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) != GLFW_PRESS) {
-
         glUseProgram(immediate);
         glBegin(GL_LINES);
-        ORIGIN
-        glVertex3f(0.0, 10.0, 0.0);
         
         ORIGIN
         glVertex3f(10.0, 0.0, 0.0);
@@ -277,14 +288,6 @@ int main()
 
         glEnd();
         glUniformMatrix4fv(immediate_mvp_l, 1, GL_FALSE, &mvp[0][0]);
-
-/*
-        std::cout << "X: " << sin(horizontal_angle) << " ";
-        std::cout << "Y: " << sin(vertical_angle) << " ";
-        std::cout << "Z: " << cos(horizontal_angle) << " | ";
-
-        std::cout << "Pos: " << pos[0] << " " << pos[1] << " " << pos[2] << "\n";
-*/
 
         glm::vec3 d(
             sin(horizontal_angle),
@@ -308,9 +311,7 @@ int main()
 
             for (int i = 1; i <= monkey.vertices.size(); i++) {
                 VERTEX.push_back(monkey.vertices[i - 1]);
-//				std::cout << "	value: " << monkey.vertices[i] << " index: " << i <<  "\n";
                 if (i % 3 == 0) {
-					//pfa(VERTEX);
                     triangle_vec3s.push_back(glm::vec3(VERTEX[0], VERTEX[1], VERTEX[2])); 
                     VERTEX.clear();
                     if (i % 9 == 0) {
@@ -324,7 +325,6 @@ int main()
             }
 
 		}
-        //std::cout << d[0] << " " << d[1] << " " << d[2] << "\n";
 		click = false;
 
 		glUseProgram(twodshader);

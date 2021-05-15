@@ -11,7 +11,7 @@ uniform float ambient_strength;
 
 void main()
 {
-	vec3 ambient = 0.2 * lightcolor;
+	vec3 ambient = 0.7 * lightcolor;
 	vec3 norm = normalize(NORMAL);
 	vec3 lightdir = normalize(lightpos - FRAGPOS);
 	float diff = max(dot(norm, lightdir), 0.0);
