@@ -206,7 +206,7 @@ int main()
 	}
 	stbi_image_free(ppdata);
 
-    Model monkey("obj.obj");
+	Model monkey("obj.obj");
 
 	GLuint immediate = load_shader("immediatevs", "immediatefs");
 	GLuint immediate_mvp_l = glGetUniformLocation(immediate, "mvp");
@@ -262,7 +262,7 @@ int main()
 		view = glm::lookAt(pos, pos + direction, up);
 
 		mvp = proj * view * model;
-        monkey.draw(pos, lightpos, model, view, proj);
+		monkey.draw(pos, lightpos, model, view, proj);
 
 		glUseProgram(flatpolygon_program);
 		glBindVertexArray(VAO);
@@ -277,25 +277,25 @@ int main()
 		glDrawArrays(GL_QUADS, 0, 12);
 		glUniformMatrix4fv(image_mvp_l, 1, GL_FALSE, &mvp[0][0]);
 
-        glUseProgram(immediate);
-        glBegin(GL_LINES);
-        
-        ORIGIN
-        glVertex3f(10.0, 0.0, 0.0);
+		glUseProgram(immediate);
+		glBegin(GL_LINES);
 
-        ORIGIN
-        glVertex3f(0.0, 0.0, 10.0);
+		ORIGIN
+		glVertex3f(10.0, 0.0, 0.0);
 
-        glEnd();
-        glUniformMatrix4fv(immediate_mvp_l, 1, GL_FALSE, &mvp[0][0]);
+		ORIGIN
+		glVertex3f(0.0, 0.0, 10.0);
 
-        glm::vec3 d(
-            sin(horizontal_angle),
-            sin(vertical_angle),
-            cos(horizontal_angle));
+		glEnd();
+		glUniformMatrix4fv(immediate_mvp_l, 1, GL_FALSE, &mvp[0][0]);
 
-        glUseProgram(twodimageshaderprogram);
-        if (!click) {
+		glm::vec3 d(
+			    sin(horizontal_angle),
+			    sin(vertical_angle),
+			    cos(horizontal_angle));
+
+		glUseProgram(twodimageshaderprogram);
+		if (!click) {
 			glBindTexture(GL_TEXTURE_2D, gun_texture);
 			glBindVertexArray(gun_VAO);
 			glBindBuffer(GL_ARRAY_BUFFER, gun_VBO);
@@ -306,23 +306,23 @@ int main()
 			glBindBuffer(GL_ARRAY_BUFFER, gun_2_VBO);
 			glDrawArrays(GL_QUADS, 0, 12);
 
-            std::vector<glm::vec3> triangle_vec3s;
-            std::vector<float> VERTEX;
+			std::vector<glm::vec3> triangle_vec3s;
+			std::vector<float> VERTEX;
 
-            for (int i = 1; i <= monkey.vertices.size(); i++) {
-                VERTEX.push_back(monkey.vertices[i - 1]);
-                if (i % 3 == 0) {
-                    triangle_vec3s.push_back(glm::vec3(VERTEX[0], VERTEX[1], VERTEX[2])); 
-                    VERTEX.clear();
-                    if (i % 9 == 0) {
-                        float ptr;
-                        if (glm::intersectRayTriangle(pos, d, triangle_vec3s[0], triangle_vec3s[1], triangle_vec3s[2], result, ptr)) {
-                           return 0;
-                        }
-                        triangle_vec3s.clear();
-                    }
-                }
-            }
+			for (int i = 1; i <= monkey.vertices.size(); i++) {
+				VERTEX.push_back(monkey.vertices[i - 1]);
+				if (i % 3 == 0) {
+					triangle_vec3s.push_back(glm::vec3(VERTEX[0], VERTEX[1], VERTEX[2]));
+					VERTEX.clear();
+					if (i % 9 == 0) {
+						float ptr;
+						if (glm::intersectRayTriangle(pos, d, triangle_vec3s[0], triangle_vec3s[1], triangle_vec3s[2], result, ptr)) {
+							return 0;
+						}
+						triangle_vec3s.clear();
+					}
+				}
+			}
 
 		}
 		click = false;
