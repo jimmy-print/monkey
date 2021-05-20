@@ -237,19 +237,21 @@ int main()
 			glfwSetCursorPos(window, mouse_x, mouse_y);
 		}
 
-		printf("vertical_angle: %f, mouse_y: %f\n", vertical_angle, mouse_y);
 
 		glm::vec3 direction(cos(vertical_angle) * sin(horizontal_angle),
 				    sin(vertical_angle),
 				    cos(vertical_angle) * cos(horizontal_angle));
+
 		glm::vec3 right(sin(horizontal_angle - 3.14f / 2.0f),
 				0,
 				cos(horizontal_angle - 3.14f / 2.0f));
+		std::cout << direction[0] << "\n";
+		glm::vec3 direction_without_pitch(sin(horizontal_angle), 0, cos(horizontal_angle));
 		if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
-			pos += direction * delay * travel_speed;
+			pos += direction_without_pitch * delay * travel_speed;
 		}
 		if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
-			pos -= direction * delay * travel_speed;
+			pos -= direction_without_pitch * delay * travel_speed;
 		}
 		if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
 			pos += right * delay * travel_speed;
@@ -317,7 +319,6 @@ int main()
 					if (i % 9 == 0) {
 						float ptr;
 						if (glm::intersectRayTriangle(pos, d, triangle_vec3s[0], triangle_vec3s[1], triangle_vec3s[2], result, ptr)) {
-							return 0;
 						}
 						triangle_vec3s.clear();
 					}
