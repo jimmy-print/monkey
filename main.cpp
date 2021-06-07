@@ -46,7 +46,7 @@ int main()
 	const int D_HEIGHT = 720;
 	glfwInit();
 	glfwWindowHint(GLFW_SAMPLES, 4);
-	GLFWwindow *window = glfwCreateWindow(D_WIDTH, D_HEIGHT, "man", 0, 0);
+	GLFWwindow *window = glfwCreateWindow(D_WIDTH, D_HEIGHT, "monkey", 0, 0);
 	glfwMakeContextCurrent(window);
 	glewInit();
 	glEnable(GL_MULTISAMPLE);
