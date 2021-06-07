@@ -55,6 +55,7 @@ int main()
 
 	float FOV = 70;
 	glm::mat4 proj = glm::perspective(glm::radians(FOV), (float) D_WIDTH / (float) D_HEIGHT, 0.1f, 100.0f);
+	float initial_y = 0.5;
 	glm::vec3 pos(0, 0.5, 0);
 	glm::mat4 view = glm::lookAt(pos,
 				     glm::vec3(0, 0, -5),
@@ -63,7 +64,7 @@ int main()
 	float horizontal_angle, vertical_angle;
 	float horizontal_angle_deg, vertical_angle_deg;
 	float mouse_speed = 0.01;
-	float travel_speed = 0.5;
+	float travel_speed = 0.3;
 	float delay = 0.1;
 	double mouse_x, mouse_y;
 	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
@@ -216,6 +217,10 @@ int main()
 
 	glm::vec3 lightpos(0.0, 10.0, 0.0);
 
+	float dy;
+	float gravity_const = 0.01;
+	float jump_strength = 0.075;
+
 	while (!glfwWindowShouldClose(window)) {
 		glClearColor(0.0, 0.5, 0.9, 1.0);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -245,7 +250,6 @@ int main()
 		glm::vec3 right(sin(horizontal_angle - 3.14f / 2.0f),
 				0,
 				cos(horizontal_angle - 3.14f / 2.0f));
-		std::cout << direction[0] << "\n";
 		glm::vec3 direction_without_pitch(sin(horizontal_angle), 0, cos(horizontal_angle));
 		if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
 			pos += direction_without_pitch * delay * travel_speed;
@@ -259,6 +263,23 @@ int main()
 		if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
 			pos -= right * delay * travel_speed;
 		}
+
+		std::cout << "y: " << pos[1] << "\n";
+		dy -= gravity_const;
+
+		if (pos[1] <= initial_y) {
+			dy = 0;
+			pos[1] = initial_y;
+		}
+		if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) {
+			if (pos[1] == initial_y) {
+				std::cout << "Jump\n";
+				dy = jump_strength;
+			}
+		}
+
+		pos[1] += dy;
+
 
 		glm::vec3 up = glm::cross(right, direction);
 		view = glm::lookAt(pos, pos + direction, up);
@@ -283,18 +304,18 @@ int main()
 		glBegin(GL_LINES);
 
 		ORIGIN
-		glVertex3f(10.0, 0.0, 0.0);
+			glVertex3f(10.0, 0.0, 0.0);
 
 		ORIGIN
-		glVertex3f(0.0, 0.0, 10.0);
+			glVertex3f(0.0, 0.0, 10.0);
 
 		glEnd();
 		glUniformMatrix4fv(immediate_mvp_l, 1, GL_FALSE, &mvp[0][0]);
 
 		glm::vec3 d(
-			    sin(horizontal_angle),
-			    sin(vertical_angle),
-			    cos(horizontal_angle));
+			sin(horizontal_angle),
+			sin(vertical_angle),
+			cos(horizontal_angle));
 
 		glUseProgram(twodimageshaderprogram);
 		if (!click) {
