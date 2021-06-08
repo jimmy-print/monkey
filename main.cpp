@@ -10,7 +10,7 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 
-#include "reference.hpp"
+#include "obj.hpp"
 
 #include <cmath>
 
@@ -74,7 +74,7 @@ int main()
 	glEnable(GL_DEPTH_TEST);
 	glDepthFunc(GL_LESS);
 
-	GLuint flatpolygon_program = load_shader("vs", "fs");
+	GLuint flatpolygon_program = load_shader("flatpolygon_vs", "flatpolygon_fs");
 	GLuint flatpolygon_mvp_l = glGetUniformLocation(flatpolygon_program, "mvp");
 
 	float vs[] = {
@@ -94,7 +94,7 @@ int main()
 	glEnableVertexAttribArray(0);
 
 	// image section
-	GLuint image_program = load_shader("imagevs", "imagefs");
+	GLuint image_program = load_shader("image_vs", "image_fs");
 	GLuint image_mvp_l = glGetUniformLocation(image_program, "mvp");
 	float image_vs[] = {
 		-1000.0, 0.0, -1000.0,    0.0, 0.0,
@@ -132,9 +132,9 @@ int main()
 	}
 	stbi_image_free(data);
 
-	GLuint twodshader = load_shader("2dvs", "2dfs");
+	GLuint twodpolygon_program  = load_shader("twodpolygon_vs", "twodpolygon_fs");
 
-	GLuint twodimageshaderprogram = load_shader("2dimageshadervs", "2dimageshaderfs");
+	GLuint twodimage_program = load_shader("twodimage_vs", "twodimage_fs");
 	float gun_vs[] = {
 		0.2, -1.0,  0.0, 0.0,
 		0.2, -0.2,  0.0, 1.0,
@@ -209,8 +209,8 @@ int main()
 
 	Model monkey("obj.obj");
 
-	GLuint immediate = load_shader("immediatevs", "immediatefs");
-	GLuint immediate_mvp_l = glGetUniformLocation(immediate, "mvp");
+	GLuint immediate_program = load_shader("immediate_vs", "immediate_fs");
+	GLuint immediate_mvp_l = glGetUniformLocation(immediate_program, "mvp");
 
 	glm::vec3 d;  // 3D unit direction vector
 	// Converted from spherical coordinate system variables (horizontal_angle, vertical_angle)
@@ -264,7 +264,6 @@ int main()
 			pos -= right * delay * travel_speed;
 		}
 
-		std::cout << "y: " << pos[1] << "\n";
 		dy -= gravity_const;
 
 		if (pos[1] <= initial_y) {
@@ -273,7 +272,6 @@ int main()
 		}
 		if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) {
 			if (pos[1] == initial_y) {
-				std::cout << "Jump\n";
 				dy = jump_strength;
 			}
 		}
@@ -300,7 +298,7 @@ int main()
 		glDrawArrays(GL_QUADS, 0, 12);
 		glUniformMatrix4fv(image_mvp_l, 1, GL_FALSE, &mvp[0][0]);
 
-		glUseProgram(immediate);
+		glUseProgram(immediate_program);
 		glBegin(GL_LINES);
 
 		ORIGIN
@@ -317,7 +315,7 @@ int main()
 			sin(vertical_angle),
 			cos(horizontal_angle));
 
-		glUseProgram(twodimageshaderprogram);
+		glUseProgram(twodimage_program);
 		if (!click) {
 			glBindTexture(GL_TEXTURE_2D, gun_texture);
 			glBindVertexArray(gun_VAO);
@@ -349,7 +347,7 @@ int main()
 		}
 		click = false;
 
-		glUseProgram(twodshader);
+		glUseProgram(twodpolygon_program);
 		glBegin(GL_LINES);
 		glVertex2f(-0.01, 0.0);
 		glVertex2f(0.01, 0.0);
