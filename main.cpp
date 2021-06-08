@@ -6,6 +6,9 @@
 #include <iostream>
 #include <vector>
 #include <fstream>
+#include <chrono>
+#include <memory>
+#include <stdexcept>
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
@@ -21,6 +24,27 @@ GLuint load_shader(std::string vs_filename, std::string fs_filename);
 std::string get_file_str(std::string file);
 bool click = false;
 glm::vec2 result;
+
+// https://stackoverflow.com/a/26221725/11772905
+// CC0 1.0
+template<typename ... Args>
+std::string string_format( const std::string& format, Args ... args )
+{
+	int size_s = std::snprintf( nullptr, 0, format.c_str(), args ... ) + 1; // Extra space for '\0'
+	if( size_s <= 0 ){ throw std::runtime_error( "Error during formatting." ); }
+	auto size = static_cast<size_t>( size_s );
+	auto buf = std::make_unique<char[]>( size );
+	std::snprintf( buf.get(), size, format.c_str(), args ... );
+	return std::string( buf.get(), buf.get() + size - 1 ); // We don't want the '\0' inside
+}
+
+int init_time, now_time;
+void log(std::string msg)
+{
+	now_time = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+	float diff = (float) (now_time - init_time) / 1000;
+	std::cout << diff << " " << msg << "\n";
+}
 
 void print_vec3(glm::vec3 v)
 {
@@ -42,6 +66,8 @@ float rad(float deg) {
 
 int main()
 {
+	init_time = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+	log("init");
 	const int D_WIDTH = 1280;
 	const int D_HEIGHT = 720;
 	glfwInit();
@@ -55,7 +81,7 @@ int main()
 
 	float FOV = 70;
 	glm::mat4 proj = glm::perspective(glm::radians(FOV), (float) D_WIDTH / (float) D_HEIGHT, 0.1f, 100.0f);
-	float initial_y = 0.5;
+	float initial_y = 1;
 	glm::vec3 pos(0, 0.5, 0);
 	glm::mat4 view = glm::lookAt(pos,
 				     glm::vec3(0, 0, -5),
@@ -64,7 +90,7 @@ int main()
 	float horizontal_angle, vertical_angle;
 	float horizontal_angle_deg, vertical_angle_deg;
 	float mouse_speed = 0.01;
-	float travel_speed = 0.3;
+	float travel_speed = 0.4;
 	float delay = 0.1;
 	double mouse_x, mouse_y;
 	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
@@ -218,8 +244,9 @@ int main()
 	glm::vec3 lightpos(0.0, 10.0, 0.0);
 
 	float dy;
-	float gravity_const = 0.01;
-	float jump_strength = 0.075;
+	float gravity_const = 0.008;
+	float jump_strength = 0.1;
+	bool in_air = false;
 
 	while (!glfwWindowShouldClose(window)) {
 		glClearColor(0.0, 0.5, 0.9, 1.0);
@@ -264,19 +291,31 @@ int main()
 			pos -= right * delay * travel_speed;
 		}
 
-		dy -= gravity_const;
 
-		if (pos[1] <= initial_y) {
-			dy = 0;
-			pos[1] = initial_y;
-		}
+
 		if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) {
 			if (pos[1] == initial_y) {
 				dy = jump_strength;
+				in_air = true;
 			}
 		}
+		dy -= gravity_const;
 
 		pos[1] += dy;
+		if (pos[1] <= initial_y) {
+			dy = 0;
+			pos[1] = initial_y;
+			in_air = false;
+		}
+
+		if (in_air) {
+			glUseProgram(twodpolygon_program);
+			glBegin(GL_TRIANGLES);
+			glVertex3f(0.0, 0.0, 0.0);
+			glVertex3f(10.0, 0.0, 0.0);
+			glVertex3f(10.0, 10.0, 0.0);
+			glEnd();
+		}
 
 
 		glm::vec3 up = glm::cross(right, direction);
