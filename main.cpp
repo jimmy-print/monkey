@@ -41,7 +41,8 @@ std::string string_format( const std::string& format, Args ... args )
 int init_time, now_time;
 void log(std::string msg)
 {
-	now_time = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+	now_time = std::chrono::duration_cast<std::chrono::milliseconds>(
+		std::chrono::system_clock::now().time_since_epoch()).count();
 	float diff = (float) (now_time - init_time) / 1000;
 	std::cout << diff << " " << msg << "\n";
 }
@@ -66,8 +67,8 @@ float rad(float deg) {
 
 int main()
 {
-	init_time = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
-	log("init");
+	init_time = std::chrono::duration_cast<std::chrono::milliseconds>(
+		std::chrono::system_clock::now().time_since_epoch()).count();
 	const int D_WIDTH = 1280;
 	const int D_HEIGHT = 720;
 	glfwInit();
@@ -80,7 +81,8 @@ int main()
 	glfwSetMouseButtonCallback(window, mouse_button_callback);
 
 	float FOV = 70;
-	glm::mat4 proj = glm::perspective(glm::radians(FOV), (float) D_WIDTH / (float) D_HEIGHT, 0.1f, 100.0f);
+	glm::mat4 proj = glm::perspective(
+		glm::radians(FOV), (float) D_WIDTH / (float) D_HEIGHT, 0.1f, 100.0f);
 	float initial_y = 1;
 	glm::vec3 pos(0, 0.5, 0);
 	glm::mat4 view = glm::lookAt(pos,
@@ -243,10 +245,13 @@ int main()
 
 	glm::vec3 lightpos(0.0, 10.0, 0.0);
 
-	float dy;
+	float dy = 0;
 	float gravity_const = 0.008;
 	float jump_strength = 0.1;
 	bool in_air = false;
+
+    float slowdown_multiplier = 0.5;
+    float actual_travel_speed = travel_speed;
 
 	while (!glfwWindowShouldClose(window)) {
 		glClearColor(0.0, 0.5, 0.9, 1.0);
@@ -278,17 +283,24 @@ int main()
 				0,
 				cos(horizontal_angle - 3.14f / 2.0f));
 		glm::vec3 direction_without_pitch(sin(horizontal_angle), 0, cos(horizontal_angle));
+
+        if (in_air) {
+            actual_travel_speed = travel_speed * slowdown_multiplier;
+        } else {
+            actual_travel_speed = travel_speed;
+        }
+
 		if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
-			pos += direction_without_pitch * delay * travel_speed;
+			pos += direction_without_pitch * delay * actual_travel_speed;
 		}
 		if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
-			pos -= direction_without_pitch * delay * travel_speed;
+			pos -= direction_without_pitch * delay * actual_travel_speed;
 		}
 		if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
-			pos += right * delay * travel_speed;
+			pos += right * delay * actual_travel_speed;
 		}
 		if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
-			pos -= right * delay * travel_speed;
+			pos -= right * delay * actual_travel_speed;
 		}
 
 
@@ -307,16 +319,6 @@ int main()
 			pos[1] = initial_y;
 			in_air = false;
 		}
-
-		if (in_air) {
-			glUseProgram(twodpolygon_program);
-			glBegin(GL_TRIANGLES);
-			glVertex3f(0.0, 0.0, 0.0);
-			glVertex3f(10.0, 0.0, 0.0);
-			glVertex3f(10.0, 10.0, 0.0);
-			glEnd();
-		}
-
 
 		glm::vec3 up = glm::cross(right, direction);
 		view = glm::lookAt(pos, pos + direction, up);
