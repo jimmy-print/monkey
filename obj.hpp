@@ -127,7 +127,7 @@ public:
 		std::vector<glm::vec2> tmp_uvs;
 		std::vector<glm::vec3> tmp_normals;
 
-		shader = load_shader("obj_vs", "obj_fs");
+		shader = load_shader("shaders/3d_obj_vs", "shaders/3d_obj_fs");
 		lightpos_l = glGetUniformLocation(shader, "lightpos");
 		viewpos_l = glGetUniformLocation(shader, "viewpos");
 		lightcolor_l = glGetUniformLocation(shader, "lightcolor");

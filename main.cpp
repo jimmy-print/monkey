@@ -102,8 +102,8 @@ int main()
 	glEnable(GL_DEPTH_TEST);
 	glDepthFunc(GL_LESS);
 
-	GLuint flatpolygon_program = load_shader("flatpolygon_vs", "flatpolygon_fs");
-	GLuint flatpolygon_mvp_l = glGetUniformLocation(flatpolygon_program, "mvp");
+	GLuint program_3d_polygon = load_shader("shaders/3d_polygon_vs", "shaders/3d_polygon_fs");
+	GLuint program_3d_polygon_mvp_l = glGetUniformLocation(program_3d_polygon, "mvp");
 
 	float vs[] = {
 		0.0, 0.0, 0.0,
@@ -122,8 +122,8 @@ int main()
 	glEnableVertexAttribArray(0);
 
 	// image section
-	GLuint image_program = load_shader("image_vs", "image_fs");
-	GLuint image_mvp_l = glGetUniformLocation(image_program, "mvp");
+	GLuint program_3d_image = load_shader("shaders/3d_image_vs", "shaders/3d_image_fs");
+	GLuint program_3d_image_mvp_l = glGetUniformLocation(program_3d_image, "mvp");
 	float image_vs[] = {
 		-1000.0, 0.0, -1000.0,    0.0, 0.0,
 		1000.0, 0.0, -1000.0,   0.0, 100.0,
@@ -160,9 +160,9 @@ int main()
 	}
 	stbi_image_free(data);
 
-	GLuint twodpolygon_program  = load_shader("twodpolygon_vs", "twodpolygon_fs");
+	GLuint program_2d_polygon = load_shader("shaders/2d_polygon_vs", "shaders/2d_polygon_fs");
 
-	GLuint twodimage_program = load_shader("twodimage_vs", "twodimage_fs");
+	GLuint program_2d_image = load_shader("shaders/2d_image_vs", "shaders/2d_image_fs");
 	float gun_vs[] = {
 		0.2, -1.0,  0.0, 0.0,
 		0.2, -0.2,  0.0, 1.0,
@@ -236,9 +236,6 @@ int main()
 	stbi_image_free(ppdata);
 
 	Model monkey("obj.obj");
-
-	GLuint immediate_program = load_shader("immediate_vs", "immediate_fs");
-	GLuint immediate_mvp_l = glGetUniformLocation(immediate_program, "mvp");
 
 	glm::vec3 d;  // 3D unit direction vector
 	// Converted from spherical coordinate system variables (horizontal_angle, vertical_angle)
@@ -326,20 +323,20 @@ int main()
 		mvp = proj * view * model;
 		monkey.draw(pos, lightpos, model, view, proj);
 
-		glUseProgram(flatpolygon_program);
+		glUseProgram(program_3d_polygon);
 		glBindVertexArray(VAO);
 		glBindBuffer(GL_ARRAY_BUFFER, VBO);
 		glDrawArrays(GL_QUADS, 0, sizeof(vs) / sizeof(vs[0]));
-		glUniformMatrix4fv(flatpolygon_mvp_l, 1, GL_FALSE, &mvp[0][0]);
+		glUniformMatrix4fv(program_3d_polygon_mvp_l, 1, GL_FALSE, &mvp[0][0]);
 
 		glBindTexture(GL_TEXTURE_2D, texture);
 		glBindVertexArray(image_VAO);
 		glBindBuffer(GL_ARRAY_BUFFER, image_VBO);
-		glUseProgram(image_program);
+		glUseProgram(program_3d_image);
 		glDrawArrays(GL_QUADS, 0, 12);
-		glUniformMatrix4fv(image_mvp_l, 1, GL_FALSE, &mvp[0][0]);
+		glUniformMatrix4fv(program_3d_image_mvp_l, 1, GL_FALSE, &mvp[0][0]);
 
-		glUseProgram(immediate_program);
+		glUseProgram(program_3d_polygon);
 		glBegin(GL_LINES);
 
 		ORIGIN
@@ -349,14 +346,14 @@ int main()
 			glVertex3f(0.0, 0.0, 10.0);
 
 		glEnd();
-		glUniformMatrix4fv(immediate_mvp_l, 1, GL_FALSE, &mvp[0][0]);
+		glUniformMatrix4fv(program_3d_polygon_mvp_l, 1, GL_FALSE, &mvp[0][0]);
 
 		glm::vec3 d(
 			sin(horizontal_angle),
 			sin(vertical_angle),
 			cos(horizontal_angle));
 
-		glUseProgram(twodimage_program);
+		glUseProgram(program_2d_image);
 		if (!click) {
 			glBindTexture(GL_TEXTURE_2D, gun_texture);
 			glBindVertexArray(gun_VAO);
@@ -388,7 +385,7 @@ int main()
 		}
 		click = false;
 
-		glUseProgram(twodpolygon_program);
+		glUseProgram(program_2d_polygon);
 		glBegin(GL_LINES);
 		glVertex2f(-0.01, 0.0);
 		glVertex2f(0.01, 0.0);
