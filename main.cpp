@@ -61,6 +61,8 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
 	}
 }
 
+float f(float x);
+
 float rad(float deg) {
 	return deg * PI / 180;
 }
@@ -161,6 +163,7 @@ int main()
 	stbi_image_free(data);
 
 	GLuint program_2d_polygon = load_shader("shaders/2d_polygon_vs", "shaders/2d_polygon_fs");
+    GLuint program_2d_polygon_color_l = glGetUniformLocation(program_2d_polygon, "color_l");
 
 	GLuint program_2d_image = load_shader("shaders/2d_image_vs", "shaders/2d_image_fs");
 	float gun_vs[] = {
@@ -236,6 +239,7 @@ int main()
 	stbi_image_free(ppdata);
 
 	Model monkey("obj.obj");
+    Model m1("obj.obj");
 
 	glm::vec3 d;  // 3D unit direction vector
 	// Converted from spherical coordinate system variables (horizontal_angle, vertical_angle)
@@ -250,12 +254,27 @@ int main()
     float slowdown_multiplier = 0.5;
     float actual_travel_speed = travel_speed;
 
+    float bullet_x = 0.214;
+    float point_size = 10;
+    bool bullet_moving;
+
 	while (!glfwWindowShouldClose(window)) {
+        if (bullet_moving) {
+            point_size -= 2;
+            bullet_x -= 0.05;
+        }   
+        if (bullet_x < 0) {
+            bullet_x = 0.214;
+            point_size = 10;
+            bullet_moving = false;
+        }
 		glClearColor(0.0, 0.5, 0.9, 1.0);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		glfwPollEvents();
 
 		glfwGetCursorPos(window, &mouse_x, &mouse_y);
+        glm::mat4 proj = glm::perspective(
+		    glm::radians(FOV), (float) D_WIDTH / (float) D_HEIGHT, 0.1f, 100.0f);
 		horizontal_angle = mouse_speed * delay * float(D_WIDTH / 2 - mouse_x);
 		vertical_angle = mouse_speed * delay * float(D_HEIGHT / 2 - mouse_y);
 		horizontal_angle_deg = horizontal_angle * 180 / PI;
@@ -300,6 +319,12 @@ int main()
 			pos -= right * delay * actual_travel_speed;
 		}
 
+        if (glfwGetKey(window, GLFW_KEY_C) == GLFW_PRESS) {
+            FOV = 20;
+        } else {
+            FOV = 70;
+        }
+
 
 
 		if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) {
@@ -322,6 +347,7 @@ int main()
 
 		mvp = proj * view * model;
 		monkey.draw(pos, lightpos, model, view, proj);
+        m1.draw(pos, lightpos, model, view, proj);
 
 		glUseProgram(program_3d_polygon);
 		glBindVertexArray(VAO);
@@ -354,16 +380,36 @@ int main()
 			cos(horizontal_angle));
 
 		glUseProgram(program_2d_image);
-		if (!click) {
-			glBindTexture(GL_TEXTURE_2D, gun_texture);
-			glBindVertexArray(gun_VAO);
-			glBindBuffer(GL_ARRAY_BUFFER, gun_VBO);
-			glDrawArrays(GL_QUADS, 0, 12);
-		} else {
-			glBindTexture(GL_TEXTURE_2D, gun_2_texture);
-			glBindVertexArray(gun_2_VAO);
-			glBindBuffer(GL_ARRAY_BUFFER, gun_2_VBO);
-			glDrawArrays(GL_QUADS, 0, 12);
+		if (!bullet_moving) {
+            if (!click) {
+			    glBindTexture(GL_TEXTURE_2D, gun_texture);
+    			glBindVertexArray(gun_VAO);
+    			glBindBuffer(GL_ARRAY_BUFFER, gun_VBO);
+    			glDrawArrays(GL_QUADS, 0, 12);
+            }
+		}
+        if (bullet_moving) {
+            if (!click) {
+                glBindTexture(GL_TEXTURE_2D, gun_texture);
+    			glBindVertexArray(gun_VAO);
+    			glBindBuffer(GL_ARRAY_BUFFER, gun_VBO);
+    			glDrawArrays(GL_QUADS, 0, 12);
+            }
+            if (click) {
+                glBindTexture(GL_TEXTURE_2D, gun_texture);
+    			glBindVertexArray(gun_VAO);
+    			glBindBuffer(GL_ARRAY_BUFFER, gun_VBO);
+    			glDrawArrays(GL_QUADS, 0, 12);
+            }
+        }
+        if (click) {
+            if (!bullet_moving) {
+			    glBindTexture(GL_TEXTURE_2D, gun_2_texture);
+    			glBindVertexArray(gun_2_VAO);
+    			glBindBuffer(GL_ARRAY_BUFFER, gun_2_VBO);
+    			glDrawArrays(GL_QUADS, 0, 12);
+            }
+            bullet_moving = true;
 
 			std::vector<glm::vec3> triangle_vec3s;
 			std::vector<float> VERTEX;
@@ -387,14 +433,27 @@ int main()
 
 		glUseProgram(program_2d_polygon);
 		glBegin(GL_LINES);
+//        glUniform3f(program_2d_polygon_color_l, 0.0, 1.0, 0.0);
+// Doesn't work, gets overwritten by next uniform call (must use vertex colors in retained mode)
 		glVertex2f(-0.01, 0.0);
 		glVertex2f(0.01, 0.0);
 		glVertex2f(0.0, -0.01);
 		glVertex2f(0.0, 0.01);
 		glEnd();
 
+        glUseProgram(program_2d_polygon);
+        glUniform3f(program_2d_polygon_color_l, 1.0, 1.0, 0.0);
+        glPointSize(point_size);
+        glBegin(GL_POINTS);
+        glVertex2f(bullet_x, f(bullet_x));
+        glEnd();
+
 		glfwSwapBuffers(window);
 	}
+}
+
+float f(float x) {
+    return -1.02336 * x;
 }
 
 GLuint load_shader(std::string vs_filename, std::string fs_filename)
