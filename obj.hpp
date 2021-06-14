@@ -237,6 +237,8 @@ public:
 
 	void draw(glm::vec3 pos, glm::vec3 lightpos, glm::mat4 model, glm::mat4 view, glm::mat4 proj)
 	{
+		lightpos[0] = vertices[0];
+		lightpos[2] = vertices[2];
 		glBindBuffer(GL_ARRAY_BUFFER, VBO_vertices);
         
 		glBufferData(GL_ARRAY_BUFFER, sizeof(float) * vertices.size(), &vertices[0], GL_STATIC_DRAW);
