@@ -227,14 +227,18 @@ public:
 }
 }
 
+    void move_x(float dx) {
+        for (int i = 0; i < vertices.size(); i++) {
+            if (i %3 == 0){
+                vertices[i] += dx;
+            }
+        }
+    }
+
 	void draw(glm::vec3 pos, glm::vec3 lightpos, glm::mat4 model, glm::mat4 view, glm::mat4 proj)
 	{
 		glBindBuffer(GL_ARRAY_BUFFER, VBO_vertices);
-        for (int i = 0; i < vertices.size(); i++) {
-            if ((i-2)%3 == 0){
-        //        vertices[i] += 0.05;
-            }
-        }
+        
 		glBufferData(GL_ARRAY_BUFFER, sizeof(float) * vertices.size(), &vertices[0], GL_STATIC_DRAW);
 		glUseProgram(shader);
 

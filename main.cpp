@@ -163,7 +163,7 @@ int main()
 	stbi_image_free(data);
 
 	GLuint program_2d_polygon = load_shader("shaders/2d_polygon_vs", "shaders/2d_polygon_fs");
-    GLuint program_2d_polygon_color_l = glGetUniformLocation(program_2d_polygon, "color_l");
+	GLuint program_2d_polygon_color_l = glGetUniformLocation(program_2d_polygon, "color_l");
 
 	GLuint program_2d_image = load_shader("shaders/2d_image_vs", "shaders/2d_image_fs");
 	float gun_vs[] = {
@@ -239,7 +239,8 @@ int main()
 	stbi_image_free(ppdata);
 
 	Model monkey("obj.obj");
-    Model m1("obj.obj");
+	Model m1("obj.obj");
+	m1.move_x(10);
 
 	glm::vec3 d;  // 3D unit direction vector
 	// Converted from spherical coordinate system variables (horizontal_angle, vertical_angle)
@@ -251,30 +252,31 @@ int main()
 	float jump_strength = 0.1;
 	bool in_air = false;
 
-    float slowdown_multiplier = 0.5;
-    float actual_travel_speed = travel_speed;
+	float slowdown_multiplier = 0.5;
+	float actual_travel_speed = travel_speed;
 
-    float bullet_x = 0.214;
-    float point_size = 10;
-    bool bullet_moving;
+	float bullet_x = 0.214;
+	float point_size = 10;
+	bool bullet_moving;
+	float crouch = 0.3;
 
 	while (!glfwWindowShouldClose(window)) {
-        if (bullet_moving) {
-            point_size -= 2;
-            bullet_x -= 0.05;
-        }   
-        if (bullet_x < 0) {
-            bullet_x = 0.214;
-            point_size = 10;
-            bullet_moving = false;
-        }
+		if (bullet_moving) {
+			point_size -= 2;
+			bullet_x -= 0.05;
+		}   
+		if (bullet_x < 0) {
+			bullet_x = 0.214;
+			point_size = 10;
+			bullet_moving = false;
+		}
 		glClearColor(0.0, 0.5, 0.9, 1.0);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		glfwPollEvents();
 
 		glfwGetCursorPos(window, &mouse_x, &mouse_y);
-        glm::mat4 proj = glm::perspective(
-		    glm::radians(FOV), (float) D_WIDTH / (float) D_HEIGHT, 0.1f, 100.0f);
+		glm::mat4 proj = glm::perspective(
+			glm::radians(FOV), (float) D_WIDTH / (float) D_HEIGHT, 0.1f, 100.0f);
 		horizontal_angle = mouse_speed * delay * float(D_WIDTH / 2 - mouse_x);
 		vertical_angle = mouse_speed * delay * float(D_HEIGHT / 2 - mouse_y);
 		horizontal_angle_deg = horizontal_angle * 180 / PI;
@@ -300,11 +302,11 @@ int main()
 				cos(horizontal_angle - 3.14f / 2.0f));
 		glm::vec3 direction_without_pitch(sin(horizontal_angle), 0, cos(horizontal_angle));
 
-        if (in_air) {
-            actual_travel_speed = travel_speed * slowdown_multiplier;
-        } else {
-            actual_travel_speed = travel_speed;
-        }
+		if (in_air) {
+			actual_travel_speed = travel_speed * slowdown_multiplier;
+		} else {
+			actual_travel_speed = travel_speed;
+		}
 
 		if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
 			pos += direction_without_pitch * delay * actual_travel_speed;
@@ -319,11 +321,11 @@ int main()
 			pos -= right * delay * actual_travel_speed;
 		}
 
-        if (glfwGetKey(window, GLFW_KEY_C) == GLFW_PRESS) {
-            FOV = 20;
-        } else {
-            FOV = 70;
-        }
+		if (glfwGetKey(window, GLFW_KEY_V) == GLFW_PRESS) {
+			FOV = 20;
+		} else {
+			FOV = 70;
+		}
 
 
 
@@ -341,13 +343,16 @@ int main()
 			pos[1] = initial_y;
 			in_air = false;
 		}
+		if (glfwGetKey(window, GLFW_KEY_C) == GLFW_PRESS && !in_air) {
+			pos[1] = initial_y - crouch;
+		}
 
 		glm::vec3 up = glm::cross(right, direction);
 		view = glm::lookAt(pos, pos + direction, up);
 
 		mvp = proj * view * model;
 		monkey.draw(pos, lightpos, model, view, proj);
-        m1.draw(pos, lightpos, model, view, proj);
+		m1.draw(pos, lightpos, model, view, proj);
 
 		glUseProgram(program_3d_polygon);
 		glBindVertexArray(VAO);
@@ -381,35 +386,35 @@ int main()
 
 		glUseProgram(program_2d_image);
 		if (!bullet_moving) {
-            if (!click) {
-			    glBindTexture(GL_TEXTURE_2D, gun_texture);
-    			glBindVertexArray(gun_VAO);
-    			glBindBuffer(GL_ARRAY_BUFFER, gun_VBO);
-    			glDrawArrays(GL_QUADS, 0, 12);
-            }
+			if (!click) {
+				glBindTexture(GL_TEXTURE_2D, gun_texture);
+				glBindVertexArray(gun_VAO);
+				glBindBuffer(GL_ARRAY_BUFFER, gun_VBO);
+				glDrawArrays(GL_QUADS, 0, 12);
+			}
 		}
-        if (bullet_moving) {
-            if (!click) {
-                glBindTexture(GL_TEXTURE_2D, gun_texture);
-    			glBindVertexArray(gun_VAO);
-    			glBindBuffer(GL_ARRAY_BUFFER, gun_VBO);
-    			glDrawArrays(GL_QUADS, 0, 12);
-            }
-            if (click) {
-                glBindTexture(GL_TEXTURE_2D, gun_texture);
-    			glBindVertexArray(gun_VAO);
-    			glBindBuffer(GL_ARRAY_BUFFER, gun_VBO);
-    			glDrawArrays(GL_QUADS, 0, 12);
-            }
-        }
-        if (click) {
-            if (!bullet_moving) {
-			    glBindTexture(GL_TEXTURE_2D, gun_2_texture);
-    			glBindVertexArray(gun_2_VAO);
-    			glBindBuffer(GL_ARRAY_BUFFER, gun_2_VBO);
-    			glDrawArrays(GL_QUADS, 0, 12);
-            }
-            bullet_moving = true;
+		if (bullet_moving) {
+			if (!click) {
+				glBindTexture(GL_TEXTURE_2D, gun_texture);
+				glBindVertexArray(gun_VAO);
+				glBindBuffer(GL_ARRAY_BUFFER, gun_VBO);
+				glDrawArrays(GL_QUADS, 0, 12);
+			}
+			if (click) {
+				glBindTexture(GL_TEXTURE_2D, gun_texture);
+				glBindVertexArray(gun_VAO);
+				glBindBuffer(GL_ARRAY_BUFFER, gun_VBO);
+				glDrawArrays(GL_QUADS, 0, 12);
+			}
+		}
+		if (click) {
+			if (!bullet_moving) {
+				glBindTexture(GL_TEXTURE_2D, gun_2_texture);
+				glBindVertexArray(gun_2_VAO);
+				glBindBuffer(GL_ARRAY_BUFFER, gun_2_VBO);
+				glDrawArrays(GL_QUADS, 0, 12);
+			}
+			bullet_moving = true;
 
 			std::vector<glm::vec3> triangle_vec3s;
 			std::vector<float> VERTEX;
@@ -441,19 +446,19 @@ int main()
 		glVertex2f(0.0, 0.01);
 		glEnd();
 
-        glUseProgram(program_2d_polygon);
-        glUniform3f(program_2d_polygon_color_l, 1.0, 1.0, 0.0);
-        glPointSize(point_size);
-        glBegin(GL_POINTS);
-        glVertex2f(bullet_x, f(bullet_x));
-        glEnd();
+		glUseProgram(program_2d_polygon);
+		glUniform3f(program_2d_polygon_color_l, 1.0, 1.0, 0.0);
+		glPointSize(point_size);
+		glBegin(GL_POINTS);
+		glVertex2f(bullet_x, f(bullet_x));
+		glEnd();
 
 		glfwSwapBuffers(window);
 	}
 }
 
 float f(float x) {
-    return -1.02336 * x;
+	return -1.02336 * x;
 }
 
 GLuint load_shader(std::string vs_filename, std::string fs_filename)
