@@ -268,7 +268,6 @@ int main()
 
 
 	while (!glfwWindowShouldClose(window)) {
-		printf("%d\n", freecam);
 		if (bullet_moving) {
 			point_size -= 2;
 			bullet_x -= 0.05;
