@@ -24,6 +24,7 @@
 GLuint load_shader(std::string vs_filename, std::string fs_filename);
 std::string get_file_str(std::string file);
 bool click = false;
+bool freecam = false;
 glm::vec2 result;
 
 // https://stackoverflow.com/a/26221725/11772905
@@ -48,14 +49,19 @@ void log(std::string msg)
 	std::cout << diff << " " << msg << "\n";
 }
 
-
-
 void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
 {
 	if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS && click == false) {
 		click = true;
 	} else {
 		click = false;
+	}
+}
+
+void key_callback(GLFWwindow *window, int key, int scancode, int action, int mods)
+{
+	if (key == GLFW_KEY_F && action == GLFW_PRESS) {
+		freecam = !freecam;
 	}
 }
 
@@ -75,6 +81,7 @@ int main()
 	glEnable(GL_MULTISAMPLE);
 
 	glfwSetMouseButtonCallback(window, mouse_button_callback);
+	glfwSetKeyCallback(window, key_callback);
 
 	float FOV = 70;
 	glm::mat4 proj = glm::perspective(
@@ -259,10 +266,9 @@ int main()
 
 	glm::vec3 point(1, 1, 1);
 
+
 	while (!glfwWindowShouldClose(window)) {
-		pos[0] = m1.vertices[0];
-		pos[1] = m1.vertices[1];
-		pos[2] = m1.vertices[2];
+		printf("%d\n", freecam);
 		if (bullet_moving) {
 			point_size -= 2;
 			bullet_x -= 0.05;
@@ -310,11 +316,20 @@ int main()
 			actual_travel_speed = travel_speed;
 		}
 
-		if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
-			pos += direction_without_pitch * delay * actual_travel_speed;
-		}
-		if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
-			pos -= direction_without_pitch * delay * actual_travel_speed;
+		if (freecam) {
+			if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
+				pos += direction * delay * travel_speed;
+			}
+			if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
+				pos -= direction * delay * travel_speed;
+			}
+		} else {
+			if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
+				pos += direction_without_pitch * delay * actual_travel_speed;
+			}
+			if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
+				pos -= direction_without_pitch * delay * actual_travel_speed;
+			}
 		}
 		if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
 			pos += right * delay * actual_travel_speed;
@@ -330,33 +345,34 @@ int main()
 		}
 
 
-
-		if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) {
-			if (pos[1] == initial_y) {
-				dy = jump_strength;
-				in_air = true;
+		if (!freecam) {
+			if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) {
+				if (pos[1] == initial_y) {
+					dy = jump_strength;
+					in_air = true;
+				}
 			}
-		}
-		dy -= gravity_const;
+			dy -= gravity_const;
 
-		pos[1] += dy;
-		if (pos[1] <= initial_y) {
-			dy = 0;
-			pos[1] = initial_y;
-			in_air = false;
-		}
-		if (glfwGetKey(window, GLFW_KEY_C) == GLFW_PRESS && !in_air) {
-			pos[1] = initial_y - crouch;
+			pos[1] += dy;
+
+			if (pos[1] <= initial_y) {
+				dy = 0;
+				pos[1] = initial_y;
+				in_air = false;
+			}
+			if (glfwGetKey(window, GLFW_KEY_C) == GLFW_PRESS && !in_air) {
+				pos[1] = initial_y - crouch;
+			}
 		}
 
 		glm::vec3 up = glm::cross(right, direction);
 		view = glm::lookAt(pos, pos + direction, up);
 
 		mvp = proj * view * model;
-        monkey.rotate();
-        m1.rotate();
 		monkey.draw(pos, lightpos, model, view, proj);
 		m1.draw(pos, lightpos, model, view, proj);
+		cube.rotate();
 		cube.draw(pos, lightpos, model, view, proj);
 
 		glUseProgram(program_3d_polygon);
@@ -383,9 +399,8 @@ int main()
 
 		glEnd();
 
-		point = rotate_y_axis(point, 10);
 		glBegin(GL_POINTS);
-		glVertex3f(point[0], point[1], point[2]);
+		glVertex3f(lightpos[0], lightpos[1], lightpos[2]);
 		glEnd();
 		glUniformMatrix4fv(program_3d_polygon_mvp_l, 1, GL_FALSE, &mvp[0][0]);
 

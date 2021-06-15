@@ -274,8 +274,8 @@ public:
         assert(vertices_vec3.size() == vertices.size() / 3);
         // Perform rotation
         for (int i = 0; i < vertices_vec3.size(); i++) {
-            vertices_vec3[i] = rotate_y_axis(vertices_vec3[i], 1);
             vertices_vec3[i] = rotate_x_axis(vertices_vec3[i], 0.5);
+            vertices_vec3[i] = rotate_y_axis(vertices_vec3[i], 0.5);
         }
 
         // Put new values into float array of vertices
@@ -287,14 +287,10 @@ public:
                 ii++;
             }
         }
-
-        std::cout << vertices[0] << "\n";
     }
 
 	void draw(glm::vec3 pos, glm::vec3 lightpos, glm::mat4 model, glm::mat4 view, glm::mat4 proj)
 		{
-			lightpos[0] = vertices[0];
-			lightpos[2] = vertices[2];
 			glBindBuffer(GL_ARRAY_BUFFER, VBO_vertices);
         
 			glBufferData(GL_ARRAY_BUFFER, sizeof(float) * vertices.size(), &vertices[0], GL_STATIC_DRAW);
