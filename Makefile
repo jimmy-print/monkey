@@ -1,3 +1,4 @@
+all: monkey
 monkey: main.cpp obj.hpp utils.hpp
 	g++ main.cpp -o monkey -lglfw3 -lGLEW -lGL -ldl -lX11 -lpthread
 

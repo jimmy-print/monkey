@@ -1,7 +1,9 @@
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
+#include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/intersect.hpp>
+#include <glm/gtc/type_ptr.hpp>
 #include <string>
 #include <iostream>
 #include <vector>
@@ -18,7 +20,6 @@
 #include <cmath>
 
 #define ORIGIN glVertex3f(0.0, 0.0, 0.0);
-#define PI 3.141592653589793
 
 GLuint load_shader(std::string vs_filename, std::string fs_filename);
 std::string get_file_str(std::string file);
@@ -47,10 +48,7 @@ void log(std::string msg)
 	std::cout << diff << " " << msg << "\n";
 }
 
-void print_vec3(glm::vec3 v)
-{
-	std::cout << v[0] << " " << v[1] << " " << v[2] << "\n";
-}
+
 
 void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
 {
@@ -62,10 +60,6 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
 }
 
 float f(float x);
-
-float rad(float deg) {
-	return deg * PI / 180;
-}
 
 int main()
 {
@@ -240,6 +234,9 @@ int main()
 
 	Model monkey("obj.obj");
 	Model m1("obj.obj");
+	Model cube("cube.obj");
+	cube.move_z(5);
+	cube.move_x(5);
 	m1.move_x(10);
 
 	glm::vec3 d;  // 3D unit direction vector
@@ -260,7 +257,12 @@ int main()
 	bool bullet_moving;
 	float crouch = 0.3;
 
+	glm::vec3 point(1, 1, 1);
+
 	while (!glfwWindowShouldClose(window)) {
+		pos[0] = m1.vertices[0];
+		pos[1] = m1.vertices[1];
+		pos[2] = m1.vertices[2];
 		if (bullet_moving) {
 			point_size -= 2;
 			bullet_x -= 0.05;
@@ -351,8 +353,11 @@ int main()
 		view = glm::lookAt(pos, pos + direction, up);
 
 		mvp = proj * view * model;
+        monkey.rotate();
+        m1.rotate();
 		monkey.draw(pos, lightpos, model, view, proj);
 		m1.draw(pos, lightpos, model, view, proj);
+		cube.draw(pos, lightpos, model, view, proj);
 
 		glUseProgram(program_3d_polygon);
 		glBindVertexArray(VAO);
@@ -376,6 +381,11 @@ int main()
 		ORIGIN
 			glVertex3f(0.0, 0.0, 10.0);
 
+		glEnd();
+
+		point = rotate_y_axis(point, 10);
+		glBegin(GL_POINTS);
+		glVertex3f(point[0], point[1], point[2]);
 		glEnd();
 		glUniformMatrix4fv(program_3d_polygon_mvp_l, 1, GL_FALSE, &mvp[0][0]);
 
