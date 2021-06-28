@@ -16,6 +16,7 @@
 #include "stb_image.h"
 
 #include "obj.hpp"
+#include "tri.h"
 
 #include <cmath>
 
@@ -267,6 +268,13 @@ int main()
 	glm::vec3 point(1, 1, 1);
 
 
+	struct tri b = {0.0, 100.0, -100.0, -100.0, 100.0, -100.0};
+	struct tri* t = (struct tri*) malloc(sizeof(struct tri));
+	t = get_tri_from_bounding(b);
+	generate_tris(t, b, 10, 0);
+	printf("\n");
+//	log_tris(t, 0);
+
 	while (!glfwWindowShouldClose(window)) {
 		if (bullet_moving) {
 			point_size -= 2;
@@ -298,7 +306,6 @@ int main()
 			vertical_angle = rad(90.0f);
 			glfwSetCursorPos(window, mouse_x, mouse_y);
 		}
-
 
 		glm::vec3 direction(cos(vertical_angle) * sin(horizontal_angle),
 				    sin(vertical_angle),
@@ -386,6 +393,10 @@ int main()
 		glUseProgram(program_3d_image);
 		glDrawArrays(GL_QUADS, 0, 12);
 		glUniformMatrix4fv(program_3d_image_mvp_l, 1, GL_FALSE, &mvp[0][0]);
+
+        glUseProgram(program_3d_polygon);
+//        glUniform3f(program_3d_polygon_color_l, 1.0, 1.0, 1.0);
+        draw_tris(t);
 
 		glUseProgram(program_3d_polygon);
 		glBegin(GL_LINES);
