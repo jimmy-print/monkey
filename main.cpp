@@ -379,9 +379,9 @@ int main()
 
 		mvp = proj * view * model;
 		monkey.draw(pos, lightpos, model, view, proj);
-		m1.rotate();
+		m1.rotate(0, 0, 0);
 		m1.draw(pos, lightpos, model, view, proj);
-		cube.rotate();
+		cube.rotate(1, 1, 1);
 		cube.draw(pos, lightpos, model, view, proj);
 
 		glUseProgram(program_3d_polygon);

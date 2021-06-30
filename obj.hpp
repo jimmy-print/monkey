@@ -258,7 +258,7 @@ public:
 		}
 	}
 
-	void rotate() {
+	void rotate(float xdeg, float ydeg, float zdeg) {
 		// Split float array of vertices into glm::vec3 array
 		std::vector<glm::vec3> vertices_vec3;
 		glm::vec3 tmp;
@@ -278,8 +278,9 @@ public:
 		assert(vertices_vec3.size() == centered_vertices.size() / 3);
 		// Perform rotation
 		for (int i = 0; i < vertices_vec3.size(); i++) {
-			vertices_vec3[i] = rotate_x_axis(vertices_vec3[i], 2.0);
-			vertices_vec3[i] = rotate_y_axis(vertices_vec3[i], 2.0);
+			vertices_vec3[i] = rotate_x_axis(vertices_vec3[i], xdeg);
+			vertices_vec3[i] = rotate_y_axis(vertices_vec3[i], ydeg);
+			vertices_vec3[i] = rotate_z_axis(vertices_vec3[i], zdeg);
 		}
 
 		// Put new values into float array of vertices
