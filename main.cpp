@@ -11,14 +11,13 @@
 #include <chrono>
 #include <memory>
 #include <stdexcept>
+#include <cmath>
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 
 #include "obj.hpp"
 #include "tri.h"
-
-#include <cmath>
 
 #define ORIGIN glVertex3f(0.0, 0.0, 0.0);
 
@@ -74,6 +73,7 @@ int main()
 		std::chrono::system_clock::now().time_since_epoch()).count();
 	const int D_WIDTH = 1280;
 	const int D_HEIGHT = 720;
+
 	glfwInit();
 	glfwWindowHint(GLFW_SAMPLES, 4);
 	GLFWwindow *window = glfwCreateWindow(D_WIDTH, D_HEIGHT, "monkey", 0, 0);
@@ -249,6 +249,7 @@ int main()
 
 	glm::vec3 d;  // 3D unit direction vector
 	// Converted from spherical coordinate system variables (horizontal_angle, vertical_angle)
+	// Different from glm::vec3 direction, which is used to calculate the view matrix.
 
 	glm::vec3 lightpos(0.0, 10.0, 0.0);
 
@@ -275,11 +276,12 @@ int main()
 	printf("\n");
 //	log_tris(t, 0);
 
+//    pfa(cube.centered_vertices);
 	while (!glfwWindowShouldClose(window)) {
 		if (bullet_moving) {
 			point_size -= 2;
 			bullet_x -= 0.05;
-		}   
+		}
 		if (bullet_x < 0) {
 			bullet_x = 0.214;
 			point_size = 10;
@@ -377,6 +379,7 @@ int main()
 
 		mvp = proj * view * model;
 		monkey.draw(pos, lightpos, model, view, proj);
+		m1.rotate();
 		m1.draw(pos, lightpos, model, view, proj);
 		cube.rotate();
 		cube.draw(pos, lightpos, model, view, proj);
@@ -394,9 +397,9 @@ int main()
 		glDrawArrays(GL_QUADS, 0, 12);
 		glUniformMatrix4fv(program_3d_image_mvp_l, 1, GL_FALSE, &mvp[0][0]);
 
-        glUseProgram(program_3d_polygon);
+		glUseProgram(program_3d_polygon);
 //        glUniform3f(program_3d_polygon_color_l, 1.0, 1.0, 1.0);
-        draw_tris(t);
+//		draw_tris(t);
 
 		glUseProgram(program_3d_polygon);
 		glBegin(GL_LINES);

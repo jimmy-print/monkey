@@ -45,7 +45,7 @@ void read_obj_file(std::string filename, std::vector<glm::vec3>* verticesp, std:
 	std::vector<glm::vec3> tmp_vertices;
 	std::vector<glm::vec2> tmp_uvs;
 	std::vector<glm::vec3> tmp_normals;
-	
+
 	while (std::getline(stream, line)) {
 		std::vector<std::string> vector;
 		vector = split(line);
@@ -102,6 +102,8 @@ public:
 	std::vector<float> uvs;
 	std::vector<float> normals;
 
+	std::vector<float> centered_vertices;
+
 	// uniform locations
 	GLuint lightpos_l;
 	GLuint viewpos_l;
@@ -135,7 +137,7 @@ public:
 			viewpos_l = glGetUniformLocation(shader, "viewpos");
 			lightcolor_l = glGetUniformLocation(shader, "lightcolor");
 			objectcolor_l = glGetUniformLocation(shader, "objectcolor");
-			ambient_strength_l = glGetUniformLocation(shader, "ambient_strength");	
+			ambient_strength_l = glGetUniformLocation(shader, "ambient_strength");
 			model_l = glGetUniformLocation(shader, "model");
 			view_l = glGetUniformLocation(shader, "view");
 			proj_l = glGetUniformLocation(shader, "proj");
@@ -202,11 +204,11 @@ public:
 			{
 				normals.push_back(vec.x);
 				normals.push_back(vec.y);
-				normals.push_back(vec.z);			
+				normals.push_back(vec.z);
 			}
 
 			// Load data into buffers
-		
+
 			glGenVertexArrays(1, &VAO);
 			glBindVertexArray(VAO);
 
@@ -228,6 +230,8 @@ public:
 					//pfa(vertices);
 				}
 			}
+
+			centered_vertices = vertices;
 		}
 
 	void move_x(float dx) {
@@ -254,45 +258,61 @@ public:
 		}
 	}
 
-    void rotate() {
-        // Split float array of vertices into glm::vec3 array
-        std::vector<glm::vec3> vertices_vec3;
-        glm::vec3 tmp;
-        for (int i = 0; i < vertices.size(); i++) {
-            if (i % 3 == 0) {
-                tmp[0] = vertices[i];
-            }
-            if ((i - 1) % 3 == 0) {
-                tmp[1] = vertices[i];
-            }
-            if ((i - 2) % 3 == 0) {
-                tmp[2] = vertices[i];
-                vertices_vec3.push_back(tmp);
-            }
-        }
+	void rotate() {
+		// Split float array of vertices into glm::vec3 array
+		std::vector<glm::vec3> vertices_vec3;
+		glm::vec3 tmp;
+		for (int i = 0; i < centered_vertices.size(); i++) {
+			if (i % 3 == 0) {
+				tmp[0] = centered_vertices[i];
+			}
+			if ((i - 1) % 3 == 0) {
+				tmp[1] = centered_vertices[i];
+			}
+			if ((i - 2) % 3 == 0) {
+				tmp[2] = centered_vertices[i];
+				vertices_vec3.push_back(tmp);
+			}
+		}
 
-        assert(vertices_vec3.size() == vertices.size() / 3);
-        // Perform rotation
-        for (int i = 0; i < vertices_vec3.size(); i++) {
-            vertices_vec3[i] = rotate_x_axis(vertices_vec3[i], 0.5);
-            vertices_vec3[i] = rotate_y_axis(vertices_vec3[i], 0.5);
-        }
+		assert(vertices_vec3.size() == centered_vertices.size() / 3);
+		// Perform rotation
+		for (int i = 0; i < vertices_vec3.size(); i++) {
+			vertices_vec3[i] = rotate_x_axis(vertices_vec3[i], 2.0);
+			vertices_vec3[i] = rotate_y_axis(vertices_vec3[i], 2.0);
+		}
 
-        // Put new values into float array of vertices
-        int ii = 0;
-        for (auto vertex_vec3 : vertices_vec3) {
-            assert(ii % 3 == 0);
-            for (int i = 0; i < 3; i++) {
-                vertices[ii] = vertex_vec3[i];
-                ii++;
-            }
-        }
-    }
+		// Put new values into float array of vertices
+		int ii = 0;
+		for (auto vertex_vec3 : vertices_vec3) {
+			assert(ii % 3 == 0);
+			for (int i = 0; i < 3; i++) {
+				centered_vertices[ii] = vertex_vec3[i];
+				ii++;
+			}
+		}
+
+		float dx, dy, dz;
+		dx = vertices[0] - centered_vertices[0];
+		dy = vertices[1] - centered_vertices[1];
+		dz = vertices[2] - centered_vertices[2];
+
+		assert(vertices.size() == centered_vertices.size());
+		for (int i = 0; i < vertices.size(); i++) {
+			if ((i - 0) % 3 == 0) {
+				vertices[i] = centered_vertices[i] + dx;
+			} else if ((i - 1) % 3 == 0) {
+				vertices[i] = centered_vertices[i] + dy;
+			} else if ((i - 2) % 3 == 0) {
+				vertices[i] = centered_vertices[i] + dz;
+			}
+		}
+	}
 
 	void draw(glm::vec3 pos, glm::vec3 lightpos, glm::mat4 model, glm::mat4 view, glm::mat4 proj)
 		{
 			glBindBuffer(GL_ARRAY_BUFFER, VBO_vertices);
-        
+
 			glBufferData(GL_ARRAY_BUFFER, sizeof(float) * vertices.size(), &vertices[0], GL_STATIC_DRAW);
 			glUseProgram(shader);
 
