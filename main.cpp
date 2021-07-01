@@ -87,7 +87,7 @@ int main()
 	glm::mat4 proj = glm::perspective(
 		glm::radians(FOV), (float) D_WIDTH / (float) D_HEIGHT, 0.1f, 100.0f);
 	float initial_y = 1;
-	glm::vec3 pos(0, 0.5, 0);
+	glm::vec3 pos(10, 0.5, 10);
 	glm::mat4 view = glm::lookAt(pos,
 				     glm::vec3(0, 0, -5),
 				     glm::vec3(0, 1, 0));
@@ -241,10 +241,18 @@ int main()
 
 	Model monkey("obj.obj");
 	Model m1("obj.obj");
+	Model m2("obj.obj");
+	Model m3("obj.obj");
+
+	std::vector<Model> monkeys = {monkey, m1, m2, m3};
+
 	Model cube("cube.obj");
 	cube.move_z(5);
 	cube.move_x(5);
-	m1.move_x(10);
+	monkeys[1].move_x(10);
+	monkeys[2].move_z(10);
+	monkeys[3].move_x(10);
+	monkeys[3].move_z(10);
 
 	glm::vec3 d;  // 3D unit direction vector
 	// Converted from spherical coordinate system variables (horizontal_angle, vertical_angle)
@@ -368,15 +376,11 @@ int main()
 		view = glm::lookAt(pos, pos + direction, up);
 
 		mvp = proj * view * model;
-		monkey.rotate_to_player(pos);
-		monkey.draw(pos, lightpos, model, view, proj);
-//		m1.rotate(0, r, 0);
-//		m1.rotate_to_player(pos);
-		m1.draw(pos, lightpos, model, view, proj);
-		cube.rotate(90, 0, 0);
-//	cube.rotate_to_player(pos);
 
-		cube.draw(pos, lightpos, model, view, proj);
+		for (auto m : monkeys) {
+			m.rotate_to_player(pos);
+			m.draw(pos, lightpos, model, view, proj);
+		}
 
 		glUseProgram(program_3d_polygon);
 		glBindVertexArray(VAO);
