@@ -1,2 +1,0 @@
-a.exe: main.cpp reference.hpp utils.hpp
-	g++ main.cpp -o a.exe -Iinclude -Llibs -lglfw3 -DGLEW_STATIC -lglew32s -lopengl32
