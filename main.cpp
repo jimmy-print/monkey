@@ -277,7 +277,9 @@ int main()
 //	log_tris(t, 0);
 
 //    pfa(cube.centered_vertices);
+//    float r = 0;
 	while (!glfwWindowShouldClose(window)) {
+ //       r+=1;
 		if (bullet_moving) {
 			point_size -= 2;
 			bullet_x -= 0.05;
@@ -378,10 +380,14 @@ int main()
 		view = glm::lookAt(pos, pos + direction, up);
 
 		mvp = proj * view * model;
+		monkey.rotate_to_player(pos);
 		monkey.draw(pos, lightpos, model, view, proj);
-		m1.rotate(0, 0, 0);
+//		m1.rotate(0, r, 0);
+//		m1.rotate_to_player(pos);
 		m1.draw(pos, lightpos, model, view, proj);
-		cube.rotate(1, 1, 1);
+		cube.rotate(90, 0, 0);
+//	cube.rotate_to_player(pos);
+
 		cube.draw(pos, lightpos, model, view, proj);
 
 		glUseProgram(program_3d_polygon);

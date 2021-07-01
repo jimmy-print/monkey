@@ -17,6 +17,10 @@ float rad(float deg) {
 	return deg * PI / 180;
 }
 
+float deg(float rad) {
+	return 180 * rad / PI;
+}
+
 glm::vec3 rotate_x_axis(glm::vec3 orig, float degree) {
 	float rotation_matrix[9] = {
 		1, 0, 0,

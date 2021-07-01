@@ -33,68 +33,6 @@ std::vector<std::string> split(std::string s) {
 	return v;
 }
 
-void read_obj_file(std::string filename, std::vector<glm::vec3>* verticesp, std::vector<glm::vec2>* uvsp, std::vector<glm::vec3>* normalsp)
-{
-	std::string filestr = get_file_str(filename);
-	std::istringstream stream(filestr);
-	std::string line;
-
-	std::vector<GLuint> vertex_indices;
-	std::vector<GLuint> uv_indices;
-	std::vector<GLuint> normal_indices;
-	std::vector<glm::vec3> tmp_vertices;
-	std::vector<glm::vec2> tmp_uvs;
-	std::vector<glm::vec3> tmp_normals;
-
-	while (std::getline(stream, line)) {
-		std::vector<std::string> vector;
-		vector = split(line);
-		if (vector[0] == "v") {
-			assert(vector.size() == 4);
-			glm::vec3 vertex(stof(vector[1]), stof(vector[2]), stof(vector[3]));
-			tmp_vertices.push_back(vertex);
-		}
-		else if (vector[0] == "vt") {
-			assert(vector.size() == 3);
-			glm::vec2 uv(stof(vector[1]), stof(vector[2]));
-			tmp_uvs.push_back(uv);
-		}
-		else if (vector[0] == "vn") {
-			assert(vector.size() == 4);
-			glm::vec3 normal(stof(vector[1]), stof(vector[2]), stof(vector[3]));
-			tmp_normals.push_back(normal);
-		}
-		else if (vector[0] == "f") {
-			assert(vector.size() == 4);
-			std::cout << "when exporting obj in blender check triangulate faces option\n";
-			std::string v1, v2, v3;
-			GLuint vertex_index[3], uv_index[3], normal_index[3];
-			sscanf(line.c_str(), "f %d/%d/%d %d/%d/%d %d/%d/%d\n", &vertex_index[0], &uv_index[0], &normal_index[0], &vertex_index[1], &uv_index[1], &normal_index[1], &vertex_index[2], &uv_index[2], &normal_index[2]);
-			vertex_indices.push_back(vertex_index[0]);
-			vertex_indices.push_back(vertex_index[1]);
-			vertex_indices.push_back(vertex_index[2]);
-			uv_indices.push_back(uv_index[0]);
-			uv_indices.push_back(uv_index[1]);
-			uv_indices.push_back(uv_index[2]);
-			normal_indices.push_back(normal_index[0]);
-			normal_indices.push_back(normal_index[1]);
-			normal_indices.push_back(normal_index[2]);
-		}
-	}
-	for (int i = 0; i < vertex_indices.size(); i++) {
-		unsigned int vertex_index = vertex_indices[i];
-		unsigned int uv_index = uv_indices[i];
-		unsigned int normal_index = normal_indices[i];
-		glm::vec3 vertex = tmp_vertices[vertex_index - 1];
-//			glm::vec2 uv = tmp_uvs[uv_index - 1];
-		glm::vec3 normal = tmp_normals[normal_index - 1];
-
-		verticesp->push_back(vertex);
-//				uvsp->push_back(uv);
-		normalsp->push_back(normal);
-	}
-}
-
 class Model
 {
 public:
@@ -103,6 +41,7 @@ public:
 	std::vector<float> normals;
 
 	std::vector<float> centered_vertices;
+	std::vector<float> original_vertices;
 
 	// uniform locations
 	GLuint lightpos_l;
@@ -232,6 +171,7 @@ public:
 			}
 
 			centered_vertices = vertices;
+			original_vertices = vertices;
 		}
 
 	void move_x(float dx) {
@@ -259,33 +199,35 @@ public:
 	}
 
 	void rotate(float xdeg, float ydeg, float zdeg) {
-		// Split float array of vertices into glm::vec3 array
-		std::vector<glm::vec3> vertices_vec3;
+		std::vector<glm::vec3> original_vertices_vec3;
 		glm::vec3 tmp;
-		for (int i = 0; i < centered_vertices.size(); i++) {
+		for (int i = 0; i < original_vertices.size(); i++) {
 			if (i % 3 == 0) {
-				tmp[0] = centered_vertices[i];
+				tmp[0] = original_vertices[i];
 			}
 			if ((i - 1) % 3 == 0) {
-				tmp[1] = centered_vertices[i];
+				tmp[1] = original_vertices[i];
 			}
 			if ((i - 2) % 3 == 0) {
-				tmp[2] = centered_vertices[i];
-				vertices_vec3.push_back(tmp);
+				tmp[2] = original_vertices[i];
+				original_vertices_vec3.push_back(tmp);
 			}
 		}
 
-		assert(vertices_vec3.size() == centered_vertices.size() / 3);
-		// Perform rotation
-		for (int i = 0; i < vertices_vec3.size(); i++) {
-			vertices_vec3[i] = rotate_x_axis(vertices_vec3[i], xdeg);
-			vertices_vec3[i] = rotate_y_axis(vertices_vec3[i], ydeg);
-			vertices_vec3[i] = rotate_z_axis(vertices_vec3[i], zdeg);
+		assert(original_vertices_vec3.size() == centered_vertices.size() / 3);
+		assert(original_vertices_vec3.size() == original_vertices.size() / 3);
+		assert(original_vertices_vec3.size() == vertices.size() / 3);
+
+		// Perform rotation on original vertices vec3
+		for (int i = 0; i < original_vertices_vec3.size(); i++) {
+			original_vertices_vec3[i] = rotate_x_axis(original_vertices_vec3[i], xdeg);
+			original_vertices_vec3[i] = rotate_y_axis(original_vertices_vec3[i], ydeg);
+			original_vertices_vec3[i] = rotate_z_axis(original_vertices_vec3[i], zdeg);
 		}
 
-		// Put new values into float array of vertices
+		// Put new values into float array of centered+rotated vertices
 		int ii = 0;
-		for (auto vertex_vec3 : vertices_vec3) {
+		for (auto vertex_vec3 : original_vertices_vec3) {
 			assert(ii % 3 == 0);
 			for (int i = 0; i < 3; i++) {
 				centered_vertices[ii] = vertex_vec3[i];
@@ -293,6 +235,7 @@ public:
 			}
 		}
 
+		// Transform centered+rotated vertices to actual rendered vertices
 		float dx, dy, dz;
 		dx = vertices[0] - centered_vertices[0];
 		dy = vertices[1] - centered_vertices[1];
@@ -307,6 +250,34 @@ public:
 			} else if ((i - 2) % 3 == 0) {
 				vertices[i] = centered_vertices[i] + dz;
 			}
+		}
+	}
+
+	void rotate_to_player(glm::vec3 pos) {
+		float dx, dy, dz;
+		dx = vertices[0] - centered_vertices[0];
+		dy = vertices[1] - centered_vertices[1];
+		dz = vertices[2] - centered_vertices[2];
+
+		glm::vec3 centered_pos(pos[0] - dx, pos[1], pos[2] - dz);
+
+		glm::vec2 flat_pos(centered_pos[0], centered_pos[2]);
+		glm::vec2 n_flat_pos = glm::normalize(flat_pos);
+
+		float x = n_flat_pos[0];
+		float z = n_flat_pos[1];
+
+		float rot;
+		if (centered_pos[2] < 0) {
+			rot = 180 + deg(asin(x));
+		} else {
+			rot = deg(asin(-x));
+		}
+
+		if (!isnan(rot)) {
+			// if pos is at center of obj
+			// presumably caused by error with trigonometric functions
+			rotate(0, rot, 0);
 		}
 	}
 
