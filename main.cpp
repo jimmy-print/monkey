@@ -246,9 +246,6 @@ int main()
 
 	std::vector<Model> monkeys = {monkey, m1, m2, m3};
 
-	Model cube("cube.obj");
-	cube.move_z(5);
-	cube.move_x(5);
 	monkeys[1].move_x(10);
 	monkeys[2].move_z(10);
 	monkeys[3].move_x(10);
