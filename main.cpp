@@ -17,7 +17,6 @@
 #include "stb_image.h"
 
 #include "obj.hpp"
-#include "tri.h"
 
 #define ORIGIN glVertex3f(0.0, 0.0, 0.0);
 
@@ -268,18 +267,7 @@ int main()
 
 	glm::vec3 point(1, 1, 1);
 
-
-	struct tri b = {0.0, 100.0, -100.0, -100.0, 100.0, -100.0};
-	struct tri* t = (struct tri*) malloc(sizeof(struct tri));
-	t = get_tri_from_bounding(b);
-	generate_tris(t, b, 10, 0);
-	printf("\n");
-//	log_tris(t, 0);
-
-//    pfa(cube.centered_vertices);
-//    float r = 0;
 	while (!glfwWindowShouldClose(window)) {
- //       r+=1;
 		if (bullet_moving) {
 			point_size -= 2;
 			bullet_x -= 0.05;
