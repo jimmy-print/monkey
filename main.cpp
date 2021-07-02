@@ -198,7 +198,7 @@ int main()
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	int pw, ph, pn;
 	unsigned char* pdata = stbi_load("Pistol.png", &pw, &ph, &pn, 0);
-	if (data) {
+	if (pdata) {
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, pw, ph, 0, GL_RGBA, GL_UNSIGNED_BYTE, pdata);
 	} else {
 		std::cout << "Failed to load Pistol.png" << "\n";
@@ -233,7 +233,7 @@ int main()
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	int ppw, pph, ppn;
 	unsigned char* ppdata = stbi_load("Pistol-2.png", &ppw, &pph, &ppn, 0);
-	if (data) {
+	if (ppdata) {
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, ppw, pph, 0, GL_RGBA, GL_UNSIGNED_BYTE, ppdata);
 	} else {
 		std::cout << "Failed to load Pistol-2.png" << "\n";
