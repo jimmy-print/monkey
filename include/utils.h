@@ -1,0 +1,24 @@
+#ifndef UTILS_H
+#define UTILS_H
+
+#include <GL/glew.h>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
+
+#include <vector>
+#include <string>
+
+#define PI 3.141592653589793
+
+void pfa(std::vector<float> v);
+float rad(float deg);
+float deg(float rad);
+glm::vec3 rotate_x_axis(glm::vec3 orig, float degree);
+glm::vec3 rotate_y_axis(glm::vec3 orig, float degree);
+glm::vec3 rotate_z_axis(glm::vec3 orig, float degree);
+void print_vec3(glm::vec3 v);
+std::string get_file_str(std::string file);
+GLuint load_shader(std::string vs_filename, std::string fs_filename);
+
+
+#endif

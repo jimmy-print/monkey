@@ -16,12 +16,11 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 
-#include "obj.hpp"
+#include <obj.h>
+#include <utils.h>
 
 #define ORIGIN glVertex3f(0.0, 0.0, 0.0);
 
-GLuint load_shader(std::string vs_filename, std::string fs_filename);
-std::string get_file_str(std::string file);
 bool click = false;
 bool freecam = false;
 glm::vec2 result;
@@ -495,77 +494,3 @@ float f(float x) {
 	return -1.02336 * x;
 }
 
-GLuint load_shader(std::string vs_filename, std::string fs_filename)
-{
-	const char *vs_cstr;
-	const char *fs_cstr;
-	std::string vs_str = get_file_str(vs_filename);
-	std::string fs_str = get_file_str(fs_filename);
-	vs_cstr = vs_str.c_str();
-	fs_cstr = fs_str.c_str();
-
-	GLuint program;
-
-	program = glCreateProgram();
-
-	GLuint vs, fs;
-	vs = glCreateShader(GL_VERTEX_SHADER);
-	glShaderSource(vs, 1, &vs_cstr, NULL);
-	glCompileShader(vs);
-
-	fs = glCreateShader(GL_FRAGMENT_SHADER);
-	glShaderSource(fs, 1, &fs_cstr, NULL);
-	glCompileShader(fs);
-
-	// Check for errors
-	GLint vs_success, fs_success;
-	vs_success = 0;
-	fs_success = 0;
-	glGetShaderiv(vs, GL_COMPILE_STATUS, &vs_success);
-	glGetShaderiv(fs, GL_COMPILE_STATUS, &fs_success);
-
-	if (vs_success == GL_FALSE) {
-		GLint vs_max_len;
-		glGetShaderiv(vs, GL_INFO_LOG_LENGTH, &vs_max_len);
-		std::vector<GLchar> vs_error_log(vs_max_len);
-		glGetShaderInfoLog(vs, vs_max_len, &vs_max_len, &vs_error_log[0]);
-
-		std::cout << "ERROR: Vertex shader compilation\n";
-		for (auto c : vs_error_log) {
-			std::cout << c;
-		}
-		std::cout << "\n";
-	}
-	if (fs_success == GL_FALSE) {
-		GLint fs_max_len;
-		glGetShaderiv(fs, GL_INFO_LOG_LENGTH, &fs_max_len);
-		std::vector<GLchar> fs_error_log(fs_max_len);
-		glGetShaderInfoLog(fs, fs_max_len, &fs_max_len, &fs_error_log[0]);
-
-		std::cout << "ERROR: Fragment shader compilation\n";
-		for (auto c : fs_error_log) {
-			std::cout << c;
-		}
-	}
-
-	glAttachShader(program, vs);
-	glAttachShader(program, fs);
-	glLinkProgram(program);
-	glValidateProgram(program);
-
-	glDeleteShader(vs);
-	glDeleteShader(fs);
-
-	return program;
-}
-
-std::string get_file_str(std::string file)
-{
-	std::ifstream f(file);
-	if (f.fail()) {
-		std::cout << file << " opening failed\n";
-	}
-	std::string s((std::istreambuf_iterator<char>(f)),
-		      (std::istreambuf_iterator<char>()));
-	return s;
-}

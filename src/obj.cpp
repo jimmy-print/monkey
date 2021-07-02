@@ -1,6 +1,3 @@
-#ifndef OBJ_H
-#define OBJ_H
-
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 
@@ -12,11 +9,9 @@
 #include <fstream>
 #include <sstream>
 
-#include "utils.hpp"
-
-GLuint load_shader(std::string vs_filename, std::string fs_filename);
-std::string get_file_str(std::string file);
-void print_vec3(glm::vec3 vec3);
+#include <obj.h>
+#include <utils.h>
+#include <math.h>
 
 std::vector<std::string> split(std::string s) {
 	std::vector<std::string> v;
@@ -33,32 +28,7 @@ std::vector<std::string> split(std::string s) {
 	return v;
 }
 
-class Model
-{
-public:
-	std::vector<float> vertices;
-	std::vector<float> uvs;
-	std::vector<float> normals;
-
-	std::vector<float> centered_vertices;
-	std::vector<float> original_vertices;
-
-	// uniform locations
-	GLuint lightpos_l;
-	GLuint viewpos_l;
-	GLuint lightcolor_l;
-	GLuint objectcolor_l;
-	GLuint ambient_strength_l;
-
-	GLuint model_l;
-	GLuint view_l;
-	GLuint proj_l;
-
-	GLuint shader;
-
-	GLuint VAO;
-	GLuint VBO_vertices, VBO_normals;
-	Model(std::string objpath)
+	Model::Model(std::string objpath)
 		{
 			std::string filestr = get_file_str(objpath);
 			std::istringstream stream(filestr);
@@ -174,7 +144,7 @@ public:
 			original_vertices = vertices;
 		}
 
-	void move_x(float dx) {
+	void Model::move_x(float dx) {
 		for (int i = 0; i < vertices.size(); i++) {
 			if (i %3 == 0){
 				vertices[i] += dx;
@@ -182,7 +152,7 @@ public:
 		}
 	}
 
-	void move_y(float dy) {
+	void Model::move_y(float dy) {
 		for (int i = 0; i < vertices.size(); i++) {
 			if ((i - 1) % 3 == 0) {
 				vertices[i] += dy;
@@ -190,7 +160,7 @@ public:
 		}
 	}
 
-	void move_z(float dz) {
+	void Model::move_z(float dz) {
 		for (int i = 0; i < vertices.size(); i++) {
 			if ((i - 2) % 3 == 0) {
 				vertices[i] += dz;
@@ -198,7 +168,7 @@ public:
 		}
 	}
 
-	void rotate(float xdeg, float ydeg, float zdeg) {
+	void Model::rotate(float xdeg, float ydeg, float zdeg) {
 		std::vector<glm::vec3> original_vertices_vec3;
 		glm::vec3 tmp;
 		for (int i = 0; i < original_vertices.size(); i++) {
@@ -253,7 +223,7 @@ public:
 		}
 	}
 
-	void rotate_to_player(glm::vec3 pos) {
+	void Model::rotate_to_player(glm::vec3 pos) {
 		float dx, dy, dz;
 		dx = vertices[0] - centered_vertices[0];
 		dy = vertices[1] - centered_vertices[1];
@@ -281,7 +251,7 @@ public:
 		}
 	}
 
-	void draw(glm::vec3 pos, glm::vec3 lightpos, glm::mat4 model, glm::mat4 view, glm::mat4 proj)
+	void Model::draw(glm::vec3 pos, glm::vec3 lightpos, glm::mat4 model, glm::mat4 view, glm::mat4 proj)
 		{
 			glBindBuffer(GL_ARRAY_BUFFER, VBO_vertices);
 
@@ -301,6 +271,3 @@ public:
 			glUniformMatrix4fv(view_l, 1, GL_FALSE, &view[0][0]);
 			glUniformMatrix4fv(proj_l, 1, GL_FALSE, &proj[0][0]);
 		}
-};
-
-#endif
