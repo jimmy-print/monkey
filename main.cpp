@@ -75,6 +75,7 @@ int main()
 
 	glfwInit();
 	glfwWindowHint(GLFW_SAMPLES, 4);
+	glfwWindowHint(GLFW_RESIZABLE, GL_FALSE);
 	GLFWwindow *window = glfwCreateWindow(D_WIDTH, D_HEIGHT, "monkey", 0, 0);
 	glfwMakeContextCurrent(window);
 	glewInit();
