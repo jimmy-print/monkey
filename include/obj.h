@@ -42,6 +42,7 @@ public:
 	void move_x(float dx);
 	void move_y(float dy);
 	void move_z(float dz);
+    void move_to_player(glm::vec3 pos);
 	void rotate(float xdeg, float ydeg, float zdeg);
 	void rotate_to_player(glm::vec3 pos);
 	void draw(glm::vec3 pos, glm::vec3 lightpos, glm::mat4 model, glm::mat4 view, glm::mat4 proj);

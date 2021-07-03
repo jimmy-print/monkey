@@ -87,7 +87,7 @@ int main()
 	glm::mat4 proj = glm::perspective(
 		glm::radians(FOV), (float) D_WIDTH / (float) D_HEIGHT, 0.1f, 100.0f);
 	float initial_y = 1;
-	glm::vec3 pos(10, 0.5, 10);
+	glm::vec3 pos(5, 0.5, 5);
 	glm::mat4 view = glm::lookAt(pos,
 				     glm::vec3(0, 0, -5),
 				     glm::vec3(0, 1, 0));
@@ -377,6 +377,10 @@ int main()
 		for (auto m : monkeys) {
 			m.rotate_to_player(pos);
 			m.draw(pos, lightpos, model, view, proj);
+		}
+
+		for (int i = 0; i < monkeys.size(); i++) {
+			monkeys[i].move_to_player(pos);
 		}
 
 		glUseProgram(program_3d_polygon);

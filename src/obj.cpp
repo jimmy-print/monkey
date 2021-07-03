@@ -168,6 +168,35 @@ std::vector<std::string> split(std::string s) {
 		}
 	}
 
+    void Model::move_to_player(glm::vec3 pos) {
+	    float rise = pos[0] - vertices[0];
+	    float run = pos[2] - vertices[2];
+
+	    float dx, dy;
+	    if (run != 0) {
+		    float m = rise / run;
+		    float length = sqrt(pow(rise, 2) + pow(run, 2));
+		    float length_per_x1 = length / run;
+
+		    dx = 1 / length_per_x1;
+		    dy = 1 / length_per_x1 * m;
+	    } else {
+		    dx = 0;
+		    dy = (rise > 0) ? 1 : -1;
+	    }
+
+	    dx *= 0.03;
+	    dy *= 0.03;
+
+	    for (int i = 0; i < vertices.size(); i++) {
+		    if (i % 3 == 0) {
+			    vertices[i] += dy;
+		    } else if ((i - 2) % 3 == 0) {
+			    vertices[i] += dx;
+		    }
+	    }
+    }
+
 	void Model::rotate(float xdeg, float ydeg, float zdeg) {
 		std::vector<glm::vec3> original_vertices_vec3;
 		glm::vec3 tmp;
