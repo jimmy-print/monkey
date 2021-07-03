@@ -272,9 +272,6 @@ int main()
 
 	glm::vec3 point(1, 1, 1);
 
-	std::cout << program_3d_polygon_mvp_l << "\n";
-
-
 	std::map<char, glyph> glyphs = init_glyphs("LiberationMono-Regular.ttf");
 	configure_blending();
 	GLuint text_VAO, text_VBO;
@@ -282,11 +279,6 @@ int main()
 	glm::mat4 ortho_mvp = get_mvp();
 	GLuint program_2d_text, program_2d_text_mvp_l, program_2d_text_color_l;
 	get_shader("shaders/2d_text_vs", "shaders/2d_text_fs", &program_2d_text, &program_2d_text_mvp_l, &program_2d_text_color_l);
-
-	std::cout << program_2d_text_mvp_l << "\n";
-	std::cout << program_2d_text_color_l << "\n";
-
-	std::cout << program_2d_polygon_color_l << "\n";
 
 	while (!glfwWindowShouldClose(window)) {
 		if (bullet_moving) {
