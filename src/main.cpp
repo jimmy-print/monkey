@@ -12,12 +12,14 @@
 #include <memory>
 #include <stdexcept>
 #include <cmath>
+#include <map>
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 
 #include <obj.h>
 #include <utils.h>
+#include <text.h>
 
 #define ORIGIN glVertex3f(0.0, 0.0, 0.0);
 
@@ -69,8 +71,6 @@ int main()
 {
 	init_time = std::chrono::duration_cast<std::chrono::milliseconds>(
 		std::chrono::system_clock::now().time_since_epoch()).count();
-	const int D_WIDTH = 1280;
-	const int D_HEIGHT = 720;
 
 	glfwInit();
 	glfwWindowHint(GLFW_SAMPLES, 4);
@@ -272,6 +272,22 @@ int main()
 
 	glm::vec3 point(1, 1, 1);
 
+	std::cout << program_3d_polygon_mvp_l << "\n";
+
+
+	std::map<char, glyph> glyphs = init_glyphs("LiberationMono-Regular.ttf");
+	configure_blending();
+	GLuint text_VAO, text_VBO;
+	get_vao_vbo(&text_VAO, &text_VBO);
+	glm::mat4 ortho_mvp = get_mvp();
+	GLuint program_2d_text, program_2d_text_mvp_l, program_2d_text_color_l;
+	get_shader("shaders/2d_text_vs", "shaders/2d_text_fs", &program_2d_text, &program_2d_text_mvp_l, &program_2d_text_color_l);
+
+	std::cout << program_2d_text_mvp_l << "\n";
+	std::cout << program_2d_text_color_l << "\n";
+
+	std::cout << program_2d_polygon_color_l << "\n";
+
 	while (!glfwWindowShouldClose(window)) {
 		if (bullet_moving) {
 			point_size -= 2;
@@ -383,6 +399,8 @@ int main()
 			monkeys[i].move_to_player(pos);
 		}
 
+		
+
 		glUseProgram(program_3d_polygon);
 		glBindVertexArray(VAO);
 		glBindBuffer(GL_ARRAY_BUFFER, VBO);
@@ -489,6 +507,9 @@ int main()
 		glBegin(GL_POINTS);
 		glVertex2f(bullet_x, f(bullet_x));
 		glEnd();
+
+		draw_text(string_format("Pos: %f, %f, %f", pos[0], pos[1], pos[2]), 100.f, D_HEIGHT - 100.f, 1.f, 1.0f, 1.0f, 1.0f, glyphs, text_VAO, text_VBO, ortho_mvp, program_2d_text, program_2d_text_mvp_l, program_2d_text_color_l);
+		glUniformMatrix4fv(program_2d_text_mvp_l, 1, GL_FALSE, &ortho_mvp[0][0]);
 
 		glfwSwapBuffers(window);
 	}

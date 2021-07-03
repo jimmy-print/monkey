@@ -1,0 +1,16 @@
+#version 330 core
+in vec2 tex_coords;
+out vec4 color;
+
+uniform sampler2D text;
+uniform vec3 color_l;
+// TODO: fix inconsistency with color_l and mvp_l.
+// Currently mvp and color_l are uniform names in shaders.
+// In C++ code, the variables are named mvp_l and color_l respectively.
+// The _l gets appended to mvp in C++ code while color_l stays the same.
+
+void main()
+{    
+    vec4 sampled = vec4(1.0, 1.0, 1.0, texture(text, tex_coords).r);
+    color = vec4(color_l, 1.0) * sampled;
+}
