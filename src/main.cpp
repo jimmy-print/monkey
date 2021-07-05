@@ -20,6 +20,7 @@
 #include <obj.h>
 #include <utils.h>
 #include <text.h>
+#include <monkey.h>
 
 #define ORIGIN glVertex3f(0.0, 0.0, 0.0);
 
@@ -239,12 +240,12 @@ int main()
 	}
 	stbi_image_free(ppdata);
 
-	Model monkey("obj.obj");
-	Model m1("obj.obj");
-	Model m2("obj.obj");
-	Model m3("obj.obj");
+	Monkey monkey("obj.obj");
+	Monkey m1("obj.obj");
+	Monkey m2("obj.obj");
+	Monkey m3("obj.obj");
 
-	std::vector<Model> monkeys = {monkey, m1, m2, m3};
+	std::vector<Monkey> monkeys = {monkey, m1, m2, m3};
 
 	monkeys[1].move_x(10);
 	monkeys[2].move_z(10);
@@ -280,6 +281,8 @@ int main()
 	GLuint program_2d_text, program_2d_text_mvp_l, program_2d_text_color_l;
 	get_shader("shaders/2d_text_vs", "shaders/2d_text_fs", &program_2d_text, &program_2d_text_mvp_l, &program_2d_text_color_l);
 
+	int health = 100;
+
 	while (!glfwWindowShouldClose(window)) {
 		if (bullet_moving) {
 			point_size -= 2;
@@ -301,6 +304,10 @@ int main()
 		vertical_angle = mouse_speed * delay * float(D_HEIGHT / 2 - mouse_y);
 		horizontal_angle_deg = horizontal_angle * 180 / PI;
 		vertical_angle_deg = vertical_angle * 180 / PI;
+		d = glm::vec3(
+			sin(horizontal_angle),
+			sin(vertical_angle),
+			cos(horizontal_angle));
 		if (vertical_angle_deg < -90.0f) {
 			mouse_y = (D_HEIGHT / 2) - (rad(-90.0f) / (mouse_speed * delay));
 			vertical_angle = rad(-90.0f);
@@ -355,7 +362,6 @@ int main()
 			FOV = 70;
 		}
 
-
 		if (!freecam) {
 			if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) {
 				if (pos[1] == initial_y) {
@@ -382,16 +388,19 @@ int main()
 
 		mvp = proj * view * model;
 
-		for (auto m : monkeys) {
-			m.rotate_to_player(pos);
-			m.draw(pos, lightpos, model, view, proj);
-		}
+		/*
+		  for (auto m : monkeys) {
+		  m.rotate_to_player(pos);
+		  m.draw(pos, lightpos, model, view, proj);
+		  }
+		*/
+		monkeys[0].rotate_to_player(pos);
+		monkeys[0].draw(pos, lightpos, model, view, proj);
 
 		for (int i = 0; i < monkeys.size(); i++) {
 			monkeys[i].move_to_player(pos);
 		}
 
-		
 
 		glUseProgram(program_3d_polygon);
 		glBindVertexArray(VAO);
@@ -426,10 +435,6 @@ int main()
 		glEnd();
 		glUniformMatrix4fv(program_3d_polygon_mvp_l, 1, GL_FALSE, &mvp[0][0]);
 
-		glm::vec3 d(
-			sin(horizontal_angle),
-			sin(vertical_angle),
-			cos(horizontal_angle));
 
 		glUseProgram(program_2d_image);
 		if (!bullet_moving) {
@@ -463,25 +468,22 @@ int main()
 			}
 			bullet_moving = true;
 
-			std::vector<glm::vec3> triangle_vec3s;
-			std::vector<float> VERTEX;
-
-			for (int i = 1; i <= monkey.vertices.size(); i++) {
-				VERTEX.push_back(monkey.vertices[i - 1]);
-				if (i % 3 == 0) {
-					triangle_vec3s.push_back(glm::vec3(VERTEX[0], VERTEX[1], VERTEX[2]));
-					VERTEX.clear();
-					if (i % 9 == 0) {
-						float ptr;
-						if (glm::intersectRayTriangle(pos, d, triangle_vec3s[0], triangle_vec3s[1], triangle_vec3s[2], result, ptr)) {
-						}
-						triangle_vec3s.clear();
-					}
-				}
+			if (monkeys[0].hits(pos, d)) {
+				monkeys[0].health -= 10;
 			}
-
 		}
 		click = false;
+
+		// TODO: fix '-' glyph seems to render as a space
+		draw_text(
+			string_format("Monkey health: %d", monkeys[0].health), 100, D_HEIGHT - 125, 1, 1.0, 1.0, 0.0,
+			glyphs, text_VAO, text_VBO, ortho_mvp,
+			program_2d_text, program_2d_text_mvp_l, program_2d_text_color_l);
+		// TODO: pack the arguments passed to draw_text that are the same every time into a struct
+		draw_text(
+			string_format("Player health: %d", health), 100, D_HEIGHT - 150, 1, 0.0, 1.0, 0.0,
+			glyphs, text_VAO, text_VBO, ortho_mvp,
+			program_2d_text, program_2d_text_mvp_l, program_2d_text_color_l);
 
 		glUseProgram(program_2d_polygon);
 		glBegin(GL_LINES);

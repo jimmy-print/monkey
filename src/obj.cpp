@@ -2,6 +2,7 @@
 #include <GLFW/glfw3.h>
 
 #include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtx/intersect.hpp>
 
 #include <iostream>
 #include <vector>
@@ -299,4 +300,27 @@ void Model::draw(glm::vec3 pos, glm::vec3 lightpos, glm::mat4 model, glm::mat4 v
 	glUniformMatrix4fv(model_l, 1, GL_FALSE, &model[0][0]);
 	glUniformMatrix4fv(view_l, 1, GL_FALSE, &view[0][0]);
 	glUniformMatrix4fv(proj_l, 1, GL_FALSE, &proj[0][0]);
+}
+
+bool Model::hits(glm::vec3 pos, glm::vec3 direction) {
+	std::vector<glm::vec3> vertices_as_vec3;
+	std::vector<float> tmp_vertex;
+
+	for (int i = 1; i <= vertices.size(); i++) {
+		tmp_vertex.push_back(vertices[i - 1]);
+		if (i % 3 == 0) {
+			vertices_as_vec3.push_back(glm::vec3(tmp_vertex[0], tmp_vertex[1], tmp_vertex[2]));
+			tmp_vertex.clear();
+			if (i % 9 == 0) {
+				float ptr;
+				glm::vec2 result;
+				if (glm::intersectRayTriangle(pos, direction, vertices_as_vec3[0], vertices_as_vec3[1], vertices_as_vec3[2], result, ptr)) {
+					return true;
+				}
+				vertices_as_vec3.clear();
+			}
+		}
+	}
+
+	return false;
 }
