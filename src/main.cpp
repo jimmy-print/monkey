@@ -270,7 +270,7 @@ int main()
 
 	float bullet_x = 0.214;
 	float point_size = 10;
-	bool bullet_moving;
+	bool bullet_moving = false;
 	float crouch = 0.3;
 
 	glm::vec3 point(1, 1, 1);
