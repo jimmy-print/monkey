@@ -1,3 +1,4 @@
+
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
@@ -65,6 +66,8 @@ void key_callback(GLFWwindow *window, int key, int scancode, int action, int mod
 		freecam = !freecam;
 	}
 }
+
+bool within_tenths(float x, float y);
 
 float f(float x);
 
@@ -474,6 +477,17 @@ int main()
 		}
 		click = false;
 
+		if (health <= 0) {
+			return 0;
+		}
+		// This check is placed before the code that decreases health in the game loop,
+		// because doing so will allow one more frame for the player to see that
+		// the health is 0 before exiting.
+
+		if (within_tenths(monkeys[0].vertices[0], pos[0]) && within_tenths(monkeys[0].vertices[2], pos[2])) {
+			health--;
+		}
+
 		// TODO: fix '-' glyph seems to render as a space
 		draw_text(
 			string_format("Monkey health: %d", monkeys[0].health), 100, D_HEIGHT - 125, 1, 1.0, 1.0, 0.0,
@@ -484,6 +498,14 @@ int main()
 			string_format("Player health: %d", health), 100, D_HEIGHT - 150, 1, 0.0, 1.0, 0.0,
 			glyphs, text_VAO, text_VBO, ortho_mvp,
 			program_2d_text, program_2d_text_mvp_l, program_2d_text_color_l);
+		draw_text(
+			string_format("monkeys[0].vertices[0]: %f, monkeys[0].vertices[1]: %f", monkeys[0].vertices[0], monkeys[0].vertices[2]), 100, D_HEIGHT - 175, 1, 1.0, 1.0, 1.0,
+			glyphs, text_VAO, text_VBO, ortho_mvp,
+			program_2d_text, program_2d_text_mvp_l, program_2d_text_color_l);
+
+		draw_text(string_format("Pos: %f, %f, %f", pos[0], pos[1], pos[2]), 100.f, D_HEIGHT - 100.f, 1.f, 1.0f, 1.0f, 1.0f, glyphs, text_VAO, text_VBO, ortho_mvp, program_2d_text, program_2d_text_mvp_l, program_2d_text_color_l);
+
+		glUniformMatrix4fv(program_2d_text_mvp_l, 1, GL_FALSE, &ortho_mvp[0][0]);
 
 		glUseProgram(program_2d_polygon);
 		glBegin(GL_LINES);
@@ -502,11 +524,13 @@ int main()
 		glVertex2f(bullet_x, f(bullet_x));
 		glEnd();
 
-		draw_text(string_format("Pos: %f, %f, %f", pos[0], pos[1], pos[2]), 100.f, D_HEIGHT - 100.f, 1.f, 1.0f, 1.0f, 1.0f, glyphs, text_VAO, text_VBO, ortho_mvp, program_2d_text, program_2d_text_mvp_l, program_2d_text_color_l);
-		glUniformMatrix4fv(program_2d_text_mvp_l, 1, GL_FALSE, &ortho_mvp[0][0]);
-
 		glfwSwapBuffers(window);
 	}
+}
+
+bool within_tenths(float x, float y)
+{
+	return x <= y + 0.1 && x >= y - 0.1;
 }
 
 float f(float x) {
