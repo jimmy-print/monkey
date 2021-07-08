@@ -242,17 +242,15 @@ int main()
 	}
 	stbi_image_free(ppdata);
 
-	Monkey monkey("obj.obj");
-	Monkey m1("obj.obj");
-	Monkey m2("obj.obj");
-	Monkey m3("obj.obj");
+	std::vector<Monkey*> monkeys;
+	for (int i = 0; i < 4; i++) {
+		monkeys.push_back(new Monkey("obj.obj"));
+	}
 
-	std::vector<Monkey> monkeys = {monkey, m1, m2, m3};
-
-	monkeys[1].move_x(10);
-	monkeys[2].move_z(10);
-	monkeys[3].move_x(10);
-	monkeys[3].move_z(10);
+	monkeys[1]->move_x(10);
+	monkeys[2]->move_z(10);
+	monkeys[3]->move_x(10);
+	monkeys[3]->move_z(10);
 
 	glm::vec3 d;  // 3D unit direction vector
 	// Converted from spherical coordinate system variables (horizontal_angle, vertical_angle)
@@ -285,7 +283,14 @@ int main()
 
 	int health = 100;
 
+	int i = 0;
+
 	while (!glfwWindowShouldClose(window)) {
+		i++;
+		if (i % 10 == 0) {
+//            monkeys.push_back(new Monkey("obj.obj"));
+		}
+
 		if (bullet_moving) {
 			point_size -= 2;
 			bullet_x -= 0.05;
@@ -390,19 +395,21 @@ int main()
 
 		mvp = proj * view * model;
 
-		/*
-		  for (auto m : monkeys) {
-		  m.rotate_to_player(pos);
-		  m.draw(pos, lightpos, model, view, proj);
-		  }
-		*/
-		monkeys[0].rotate_to_player(pos);
-		monkeys[0].draw(pos, lightpos, model, view, proj);
-
 		for (int i = 0; i < monkeys.size(); i++) {
-			monkeys[i].move_to_player(pos);
+			if (monkeys[i]->health <= 0) {
+				delete monkeys[i];
+				monkeys.erase(monkeys.begin() + i);
+			}
 		}
 
+		for (auto m : monkeys) {
+			m->rotate_to_player(pos);
+			m->draw(pos, lightpos, model, view, proj);
+		}
+
+		for (int i = 0; i < monkeys.size(); i++) {
+			monkeys[i]->move_to_player(pos);
+		}
 
 		glUseProgram(program_3d_polygon);
 		glBindVertexArray(VAO);
@@ -470,46 +477,53 @@ int main()
 			}
 			bullet_moving = true;
 
-			if (monkeys[0].hits(pos, d)) {
-				monkeys[0].health -= 10;
+			//for (auto m : monkeys) {
+			// The check being located here means that every time the mouse is clicked (not held down),
+			// the monkey's health decreases. It's not in sync with the yellow bullet animation.
+			// TODO: fix ^
+			for (int i = 0; i < monkeys.size(); i++) {
+				if (monkeys[i]->hits(pos, d)) {
+					monkeys[i]->health -= 10;
+					// NOTE: it seems that write operations to objects in monkeys only take effect on the
+					// original object if array indexing is used, instead of auto m : monkeys.
+				}
 			}
 		}
 		click = false;
 
 		if (health <= 0) {
-			return 0;
+//			return 0;
 		}
 		// This check is placed before the code that decreases health in the game loop,
 		// because doing so will allow one more frame for the player to see that
 		// the health is 0 before exiting.
 
-		if (within_tenths(monkeys[0].vertices[0], pos[0]) && within_tenths(monkeys[0].vertices[2], pos[2])) {
-			health--;
+		for (auto m : monkeys) {
+			if (within_tenths(m->vertices[0], pos[0]) && within_tenths(m->vertices[2], pos[2])) {
+				// Doesn't check height
+				health--;
+			}
 		}
 
 		// TODO: fix '-' glyph seems to render as a space
-		draw_text(
-			string_format("Monkey health: %d", monkeys[0].health), 100, D_HEIGHT - 125, 1, 1.0, 1.0, 0.0,
-			glyphs, text_VAO, text_VBO, ortho_mvp,
-			program_2d_text, program_2d_text_mvp_l, program_2d_text_color_l);
 		// TODO: pack the arguments passed to draw_text that are the same every time into a struct
 		draw_text(
 			string_format("Player health: %d", health), 100, D_HEIGHT - 150, 1, 0.0, 1.0, 0.0,
 			glyphs, text_VAO, text_VBO, ortho_mvp,
 			program_2d_text, program_2d_text_mvp_l, program_2d_text_color_l);
-		draw_text(
-			string_format("monkeys[0].vertices[0]: %f, monkeys[0].vertices[1]: %f", monkeys[0].vertices[0], monkeys[0].vertices[2]), 100, D_HEIGHT - 175, 1, 1.0, 1.0, 1.0,
-			glyphs, text_VAO, text_VBO, ortho_mvp,
-			program_2d_text, program_2d_text_mvp_l, program_2d_text_color_l);
 
 		draw_text(string_format("Pos: %f, %f, %f", pos[0], pos[1], pos[2]), 100.f, D_HEIGHT - 100.f, 1.f, 1.0f, 1.0f, 1.0f, glyphs, text_VAO, text_VBO, ortho_mvp, program_2d_text, program_2d_text_mvp_l, program_2d_text_color_l);
+		//printf("%d\n", monkeys[0].health);
+		for (int i = 0; i < monkeys.size(); i++) {
+			draw_text(string_format("Monkey #%d health: %d", i, monkeys[i]->health), 100, D_HEIGHT - 200 - i * 25, 1.0, 1.0, 1.0, 1.0, glyphs, text_VAO, text_VBO, ortho_mvp, program_2d_text, program_2d_text_mvp_l, program_2d_text_color_l);
+		}
 
 		glUniformMatrix4fv(program_2d_text_mvp_l, 1, GL_FALSE, &ortho_mvp[0][0]);
 
 		glUseProgram(program_2d_polygon);
 		glBegin(GL_LINES);
-//        glUniform3f(program_2d_polygon_color_l, 0.0, 1.0, 0.0);
-// Doesn't work, gets overwritten by next uniform call (must use vertex colors in retained mode)
+		// glUniform3f(program_2d_polygon_color_l, 0.0, 1.0, 0.0);
+		// Doesn't work, gets overwritten by next uniform call (must use vertex colors in retained mode)
 		glVertex2f(-0.01, 0.0);
 		glVertex2f(0.01, 0.0);
 		glVertex2f(0.0, -0.01);

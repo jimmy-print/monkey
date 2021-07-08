@@ -145,6 +145,16 @@ Model::Model(std::string objpath)
 	original_vertices = vertices;
 }
 
+Model::~Model()
+{
+	// Same issue as in platformer
+	// The deletion stops memory usage from growing endlessly,
+	// but it doesn't make it decrease.
+	glDeleteVertexArrays(1, &VAO);
+	glDeleteBuffers(1, &VBO_vertices);
+	glDeleteBuffers(1, &VBO_normals);
+}
+
 void Model::move_x(float dx) {
 	for (int i = 0; i < vertices.size(); i++) {
 		if (i %3 == 0){
@@ -302,7 +312,46 @@ void Model::draw(glm::vec3 pos, glm::vec3 lightpos, glm::mat4 model, glm::mat4 v
 	glUniformMatrix4fv(proj_l, 1, GL_FALSE, &proj[0][0]);
 }
 
+bool intersect_ray_triangle(glm::vec3 pos, glm::vec3 direction, glm::vec3 tri_p1, glm::vec3 tri_p2, glm::vec3 tri_p3)
+{
+	const float EPSILON = 0.0000001;
+	glm::vec3 edge1, edge2, h, s, q;
+	float a, f, u, v;
+
+	edge1 = tri_p2 - tri_p1;
+	edge2 = tri_p3 - tri_p1;
+
+	h = glm::cross(direction, edge2);
+	a = glm::dot(edge1, h);
+	if (a > -EPSILON && a < EPSILON) {
+		return false;
+	}
+
+	f = 1.0 / a;
+	s = pos - tri_p1;
+	u = f * glm::dot(s, h);
+	if (u < 0.0 || u > 1.0) {
+		return false;
+
+	}
+
+	q = glm::cross(s, edge1);
+	v = f * glm::dot(direction, q);
+	if (v < 0.0 || u + v > 1.0) {
+		return false;
+	}
+
+	float t = f * glm::dot(edge2, q);
+	if (t > EPSILON) {
+		return true;
+	} else {
+		return false;
+	}
+}
+
 bool Model::hits(glm::vec3 pos, glm::vec3 direction) {
+	// This function does not return true when the pos is above the model and
+	// the direction is facing downwards. (when f is pressed, for freecam)
 	std::vector<glm::vec3> vertices_as_vec3;
 	std::vector<float> tmp_vertex;
 
@@ -312,9 +361,7 @@ bool Model::hits(glm::vec3 pos, glm::vec3 direction) {
 			vertices_as_vec3.push_back(glm::vec3(tmp_vertex[0], tmp_vertex[1], tmp_vertex[2]));
 			tmp_vertex.clear();
 			if (i % 9 == 0) {
-				float ptr;
-				glm::vec2 result;
-				if (glm::intersectRayTriangle(pos, direction, vertices_as_vec3[0], vertices_as_vec3[1], vertices_as_vec3[2], result, ptr)) {
+				if (intersect_ray_triangle(pos, direction, vertices_as_vec3[0], vertices_as_vec3[1], vertices_as_vec3[2])) {
 					return true;
 				}
 				vertices_as_vec3.clear();

@@ -39,6 +39,7 @@ public:
 	GLuint VAO;
 	GLuint VBO_vertices, VBO_normals;
 	Model(std::string objpath);
+	~Model();
 	void move_x(float dx);
 	void move_y(float dy);
 	void move_z(float dz);
