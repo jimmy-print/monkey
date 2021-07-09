@@ -1,0 +1,1 @@
+g++ -o monkey src\*.cpp -Iinclude -Llibs -DGLEW_STATIC -lfreetype -lglfw3 -lglew32s -lopengl32

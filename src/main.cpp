@@ -45,7 +45,7 @@ int init_time, now_time;
 void log(std::string msg)
 {
 	now_time = std::chrono::duration_cast<std::chrono::milliseconds>(
-		std::chrono::system_clock::now().time_since_epoch()).count();
+																	 std::chrono::system_clock::now().time_since_epoch()).count();
 	float diff = (float) (now_time - init_time) / 1000;
 	std::cout << diff << " " << msg << "\n";
 }
@@ -73,7 +73,7 @@ float f(float x);
 int main()
 {
 	init_time = std::chrono::duration_cast<std::chrono::milliseconds>(
-		std::chrono::system_clock::now().time_since_epoch()).count();
+																	  std::chrono::system_clock::now().time_since_epoch()).count();
 
 	glfwInit();
 	glfwWindowHint(GLFW_SAMPLES, 4);
@@ -88,12 +88,12 @@ int main()
 
 	float FOV = 70;
 	glm::mat4 proj = glm::perspective(
-		glm::radians(FOV), (float) D_WIDTH / (float) D_HEIGHT, 0.1f, 100.0f);
+									  glm::radians(FOV), (float) D_WIDTH / (float) D_HEIGHT, 0.1f, 100.0f);
 	float initial_y = 1;
 	glm::vec3 pos(5, 0.5, 5);
 	glm::mat4 view = glm::lookAt(pos,
-				     glm::vec3(0, 0, -5),
-				     glm::vec3(0, 1, 0));
+								 glm::vec3(0, 0, -5),
+								 glm::vec3(0, 1, 0));
 	glm::mat4 model(1.0f);
 	float horizontal_angle, vertical_angle;
 	float horizontal_angle_deg, vertical_angle_deg;
@@ -282,18 +282,21 @@ int main()
 	get_shader("shaders/2d_text_vs", "shaders/2d_text_fs", &program_2d_text, &program_2d_text_mvp_l, &program_2d_text_color_l);
 
 	int health = 100;
+	int bullet_damage = 10;
+	float bullet_animation_horizontal_speed = 0.05;
 
 	int i = 0;
 
 	while (!glfwWindowShouldClose(window)) {
 		i++;
 		if (i % 10 == 0) {
-//            monkeys.push_back(new Monkey("obj.obj"));
+			// monkeys.push_back(new Monkey("obj.obj"));
+			// ^ for memory leak testing
 		}
 
 		if (bullet_moving) {
 			point_size -= 2;
-			bullet_x -= 0.05;
+			bullet_x -= bullet_animation_horizontal_speed;
 		}
 		if (bullet_x < 0) {
 			bullet_x = 0.214;
@@ -306,15 +309,15 @@ int main()
 
 		glfwGetCursorPos(window, &mouse_x, &mouse_y);
 		glm::mat4 proj = glm::perspective(
-			glm::radians(FOV), (float) D_WIDTH / (float) D_HEIGHT, 0.1f, 100.0f);
+										  glm::radians(FOV), (float) D_WIDTH / (float) D_HEIGHT, 0.1f, 100.0f);
 		horizontal_angle = mouse_speed * delay * float(D_WIDTH / 2 - mouse_x);
 		vertical_angle = mouse_speed * delay * float(D_HEIGHT / 2 - mouse_y);
 		horizontal_angle_deg = horizontal_angle * 180 / PI;
 		vertical_angle_deg = vertical_angle * 180 / PI;
 		d = glm::vec3(
-			sin(horizontal_angle),
-			sin(vertical_angle),
-			cos(horizontal_angle));
+					  sin(horizontal_angle),
+					  sin(vertical_angle),
+					  cos(horizontal_angle));
 		if (vertical_angle_deg < -90.0f) {
 			mouse_y = (D_HEIGHT / 2) - (rad(-90.0f) / (mouse_speed * delay));
 			vertical_angle = rad(-90.0f);
@@ -327,12 +330,12 @@ int main()
 		}
 
 		glm::vec3 direction(cos(vertical_angle) * sin(horizontal_angle),
-				    sin(vertical_angle),
-				    cos(vertical_angle) * cos(horizontal_angle));
+							sin(vertical_angle),
+							cos(vertical_angle) * cos(horizontal_angle));
 
 		glm::vec3 right(sin(horizontal_angle - 3.14f / 2.0f),
-				0,
-				cos(horizontal_angle - 3.14f / 2.0f));
+						0,
+						cos(horizontal_angle - 3.14f / 2.0f));
 		glm::vec3 direction_without_pitch(sin(horizontal_angle), 0, cos(horizontal_angle));
 
 		if (in_air) {
@@ -425,8 +428,8 @@ int main()
 		glUniformMatrix4fv(program_3d_image_mvp_l, 1, GL_FALSE, &mvp[0][0]);
 
 		glUseProgram(program_3d_polygon);
-//        glUniform3f(program_3d_polygon_color_l, 1.0, 1.0, 1.0);
-//		draw_tris(t);
+		//        glUniform3f(program_3d_polygon_color_l, 1.0, 1.0, 1.0);
+		//		draw_tris(t);
 
 		glUseProgram(program_3d_polygon);
 		glBegin(GL_LINES);
@@ -470,6 +473,20 @@ int main()
 		}
 		if (click) {
 			if (!bullet_moving) {
+				// This section of code is ran when the mouse clicks
+				// and not after, when it is held down. Thus,
+				// by putting the health/bullet handling code here,
+				// the shooting and subsequent decrease of monkey health
+				// is in sync with the bullet animation (the dot).
+
+				// NOTE: it seems that write operations to objects in monkeys only take effect on the
+				// original object if array indexing is used, instead of auto m : monkeys.
+				for (int i = 0; i < monkeys.size(); i++) {
+					if (monkeys[i]->hits(pos, d)) {
+						monkeys[i]->health -= bullet_damage;
+					}
+				}
+
 				glBindTexture(GL_TEXTURE_2D, gun_2_texture);
 				glBindVertexArray(gun_2_VAO);
 				glBindBuffer(GL_ARRAY_BUFFER, gun_2_VBO);
@@ -477,22 +494,12 @@ int main()
 			}
 			bullet_moving = true;
 
-			//for (auto m : monkeys) {
-			// The check being located here means that every time the mouse is clicked (not held down),
-			// the monkey's health decreases. It's not in sync with the yellow bullet animation.
-			// TODO: fix ^
-			for (int i = 0; i < monkeys.size(); i++) {
-				if (monkeys[i]->hits(pos, d)) {
-					monkeys[i]->health -= 10;
-					// NOTE: it seems that write operations to objects in monkeys only take effect on the
-					// original object if array indexing is used, instead of auto m : monkeys.
-				}
-			}
+
 		}
 		click = false;
 
 		if (health <= 0) {
-//			return 0;
+			//			return 0;
 		}
 		// This check is placed before the code that decreases health in the game loop,
 		// because doing so will allow one more frame for the player to see that
@@ -508,9 +515,9 @@ int main()
 		// TODO: fix '-' glyph seems to render as a space
 		// TODO: pack the arguments passed to draw_text that are the same every time into a struct
 		draw_text(
-			string_format("Player health: %d", health), 100, D_HEIGHT - 150, 1, 0.0, 1.0, 0.0,
-			glyphs, text_VAO, text_VBO, ortho_mvp,
-			program_2d_text, program_2d_text_mvp_l, program_2d_text_color_l);
+				  string_format("Player health: %d", health), 100, D_HEIGHT - 150, 1, 0.0, 1.0, 0.0,
+				  glyphs, text_VAO, text_VBO, ortho_mvp,
+				  program_2d_text, program_2d_text_mvp_l, program_2d_text_color_l);
 
 		draw_text(string_format("Pos: %f, %f, %f", pos[0], pos[1], pos[2]), 100.f, D_HEIGHT - 100.f, 1.f, 1.0f, 1.0f, 1.0f, glyphs, text_VAO, text_VBO, ortho_mvp, program_2d_text, program_2d_text_mvp_l, program_2d_text_color_l);
 		//printf("%d\n", monkeys[0].health);

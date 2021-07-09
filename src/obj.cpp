@@ -104,18 +104,18 @@ Model::Model(std::string objpath)
 
 	// change glm::vec3 vectors to float vectors
 	for (auto vec : inter_vertices)
-	{
-		vertices.push_back(vec.x);
-		vertices.push_back(vec.y);
-		vertices.push_back(vec.z);
-	}
+		{
+			vertices.push_back(vec.x);
+			vertices.push_back(vec.y);
+			vertices.push_back(vec.z);
+		}
 
 	for (auto vec : inter_normals)
-	{
-		normals.push_back(vec.x);
-		normals.push_back(vec.y);
-		normals.push_back(vec.z);
-	}
+		{
+			normals.push_back(vec.x);
+			normals.push_back(vec.y);
+			normals.push_back(vec.z);
+		}
 
 	// Load data into buffers
 
@@ -150,9 +150,19 @@ Model::~Model()
 	// Same issue as in platformer
 	// The deletion stops memory usage from growing endlessly,
 	// but it doesn't make it decrease.
+
+	// 2021-08-07 NOTE: This doesn't happen on Windows.
+	// On Windows, after a monkey is destroyed, the memory usually
+	// decreases slightly. It's probably OS-dependent.
+	// However, the memory still creeps up slowly even when there's 0-1
+	// monkeys that are constantly being destroyed and re-created.
 	glDeleteVertexArrays(1, &VAO);
 	glDeleteBuffers(1, &VBO_vertices);
 	glDeleteBuffers(1, &VBO_normals);
+
+	std::vector<float>().swap(vertices); // <- probably useless
+	std::vector<float>().swap(uvs);      //, as these vectors do not
+	std::vector<float>().swap(normals);  // contain pointers.
 }
 
 void Model::move_x(float dx) {
