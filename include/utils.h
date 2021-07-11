@@ -10,8 +10,8 @@
 
 #define PI 3.141592653589793
 
-#define D_WIDTH 1280
-#define D_HEIGHT 720
+#define D_WIDTH 1920
+#define D_HEIGHT 1080
 
 void pfa(std::vector<float> v);
 float rad(float deg);
@@ -22,6 +22,6 @@ glm::vec3 rotate_z_axis(glm::vec3 orig, float degree);
 void print_vec3(glm::vec3 v);
 std::string get_file_str(std::string file);
 GLuint load_shader(std::string vs_filename, std::string fs_filename);
-
+float get_distance(float x0, float z0, float x1, float z1);
 
 #endif

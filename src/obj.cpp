@@ -104,18 +104,18 @@ Model::Model(std::string objpath)
 
 	// change glm::vec3 vectors to float vectors
 	for (auto vec : inter_vertices)
-		{
-			vertices.push_back(vec.x);
-			vertices.push_back(vec.y);
-			vertices.push_back(vec.z);
-		}
+	{
+		vertices.push_back(vec.x);
+		vertices.push_back(vec.y);
+		vertices.push_back(vec.z);
+	}
 
 	for (auto vec : inter_normals)
-		{
-			normals.push_back(vec.x);
-			normals.push_back(vec.y);
-			normals.push_back(vec.z);
-		}
+	{
+		normals.push_back(vec.x);
+		normals.push_back(vec.y);
+		normals.push_back(vec.z);
+	}
 
 	// Load data into buffers
 
@@ -219,6 +219,7 @@ void Model::move_to_player(glm::vec3 pos) {
 }
 
 void Model::rotate(float xdeg, float ydeg, float zdeg) {
+	// TODO: optimise this function
 	std::vector<glm::vec3> original_vertices_vec3;
 	glm::vec3 tmp;
 	for (int i = 0; i < original_vertices.size(); i++) {
@@ -234,9 +235,11 @@ void Model::rotate(float xdeg, float ydeg, float zdeg) {
 		}
 	}
 
-	assert(original_vertices_vec3.size() == centered_vertices.size() / 3);
-	assert(original_vertices_vec3.size() == original_vertices.size() / 3);
-	assert(original_vertices_vec3.size() == vertices.size() / 3);
+	/*
+	  assert(original_vertices_vec3.size() == centered_vertices.size() / 3);
+	  assert(original_vertices_vec3.size() == original_vertices.size() / 3);
+	  assert(original_vertices_vec3.size() == vertices.size() / 3);
+	*/
 
 	// Perform rotation on original vertices vec3
 	for (int i = 0; i < original_vertices_vec3.size(); i++) {
@@ -248,7 +251,7 @@ void Model::rotate(float xdeg, float ydeg, float zdeg) {
 	// Put new values into float array of centered+rotated vertices
 	int ii = 0;
 	for (auto vertex_vec3 : original_vertices_vec3) {
-		assert(ii % 3 == 0);
+		// assert(ii % 3 == 0);
 		for (int i = 0; i < 3; i++) {
 			centered_vertices[ii] = vertex_vec3[i];
 			ii++;
@@ -261,7 +264,7 @@ void Model::rotate(float xdeg, float ydeg, float zdeg) {
 	dy = vertices[1] - centered_vertices[1];
 	dz = vertices[2] - centered_vertices[2];
 
-	assert(vertices.size() == centered_vertices.size());
+	// assert(vertices.size() == centered_vertices.size());
 	for (int i = 0; i < vertices.size(); i++) {
 		if ((i - 0) % 3 == 0) {
 			vertices[i] = centered_vertices[i] + dx;

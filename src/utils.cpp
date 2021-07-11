@@ -135,4 +135,11 @@ GLuint load_shader(std::string vs_filename, std::string fs_filename)
 	return program;
 }
 
+float get_distance(float x0, float z0, float x1, float z1)
+{
+	float dx = x1 - x0;
+	float dz = z1 - z0;
+
+	return sqrt(dx * dx + dz * dz);
+}
 

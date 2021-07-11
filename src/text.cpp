@@ -26,7 +26,7 @@ std::map<char, glyph> init_glyphs(std::string fontpath)
 	}
 	int font_size = 15;
 	FT_Set_Pixel_Sizes(face, 0, font_size);
-	
+
 	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 
 	std::map<char, glyph> glyphs;
@@ -96,10 +96,10 @@ void get_shader(std::string vspath, std::string fspath, GLuint* shader_out, GLui
 }
 
 void draw_text(
-	std::string text, 
-	float x, float y, 
-	float scale, 
-	float r, float g, float b, 
+	std::string text,
+	float x, float y,
+	float scale,
+	float r, float g, float b,
 	std::map<char, glyph> glyphs,
 	GLuint VAO, GLuint VBO,
 	glm::mat4 mvp,
@@ -134,9 +134,9 @@ void draw_text(
 		glBindBuffer(GL_ARRAY_BUFFER, 0);
 		glDrawArrays(GL_TRIANGLES, 0, 6);
 		glBindVertexArray(0);
-    	glBindTexture(GL_TEXTURE_2D, 0);
+		glBindTexture(GL_TEXTURE_2D, 0);
 
 		x += (g.advance_x >> 6) * scale;
 	}
-	
+
 }

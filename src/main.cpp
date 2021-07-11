@@ -13,6 +13,7 @@
 #include <stdexcept>
 #include <cmath>
 #include <map>
+#include <random>
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
@@ -45,7 +46,7 @@ int init_time, now_time;
 void log(std::string msg)
 {
 	now_time = std::chrono::duration_cast<std::chrono::milliseconds>(
-																	 std::chrono::system_clock::now().time_since_epoch()).count();
+		std::chrono::system_clock::now().time_since_epoch()).count();
 	float diff = (float) (now_time - init_time) / 1000;
 	std::cout << diff << " " << msg << "\n";
 }
@@ -73,7 +74,9 @@ float f(float x);
 int main()
 {
 	init_time = std::chrono::duration_cast<std::chrono::milliseconds>(
-																	  std::chrono::system_clock::now().time_since_epoch()).count();
+		std::chrono::system_clock::now().time_since_epoch()).count();
+
+	srand(time(NULL));
 
 	glfwInit();
 	glfwWindowHint(GLFW_SAMPLES, 4);
@@ -88,12 +91,12 @@ int main()
 
 	float FOV = 70;
 	glm::mat4 proj = glm::perspective(
-									  glm::radians(FOV), (float) D_WIDTH / (float) D_HEIGHT, 0.1f, 100.0f);
+		glm::radians(FOV), (float) D_WIDTH / (float) D_HEIGHT, 0.1f, 100.0f);
 	float initial_y = 1;
 	glm::vec3 pos(5, 0.5, 5);
 	glm::mat4 view = glm::lookAt(pos,
-								 glm::vec3(0, 0, -5),
-								 glm::vec3(0, 1, 0));
+				     glm::vec3(0, 0, -5),
+				     glm::vec3(0, 1, 0));
 	glm::mat4 model(1.0f);
 	float horizontal_angle, vertical_angle;
 	float horizontal_angle_deg, vertical_angle_deg;
@@ -243,7 +246,8 @@ int main()
 	stbi_image_free(ppdata);
 
 	std::vector<Monkey*> monkeys;
-	for (int i = 0; i < 4; i++) {
+	int monkeys_num = 30;
+	for (int i = 0; i < monkeys_num; i++) {
 		monkeys.push_back(new Monkey("obj.obj"));
 	}
 
@@ -270,6 +274,11 @@ int main()
 	float point_size = 10;
 	bool bullet_moving = false;
 	float crouch = 0.3;
+
+	float visibility = 5;
+	// draw a line (shortest distance) between pos and monkey[*].
+	// if the line's length is greater than 10, the monkey will not
+	// rotate or move to the player.)
 
 	glm::vec3 point(1, 1, 1);
 
@@ -309,15 +318,15 @@ int main()
 
 		glfwGetCursorPos(window, &mouse_x, &mouse_y);
 		glm::mat4 proj = glm::perspective(
-										  glm::radians(FOV), (float) D_WIDTH / (float) D_HEIGHT, 0.1f, 100.0f);
+			glm::radians(FOV), (float) D_WIDTH / (float) D_HEIGHT, 0.1f, 100.0f);
 		horizontal_angle = mouse_speed * delay * float(D_WIDTH / 2 - mouse_x);
 		vertical_angle = mouse_speed * delay * float(D_HEIGHT / 2 - mouse_y);
 		horizontal_angle_deg = horizontal_angle * 180 / PI;
 		vertical_angle_deg = vertical_angle * 180 / PI;
 		d = glm::vec3(
-					  sin(horizontal_angle),
-					  sin(vertical_angle),
-					  cos(horizontal_angle));
+			sin(horizontal_angle),
+			sin(vertical_angle),
+			cos(horizontal_angle));
 		if (vertical_angle_deg < -90.0f) {
 			mouse_y = (D_HEIGHT / 2) - (rad(-90.0f) / (mouse_speed * delay));
 			vertical_angle = rad(-90.0f);
@@ -330,12 +339,12 @@ int main()
 		}
 
 		glm::vec3 direction(cos(vertical_angle) * sin(horizontal_angle),
-							sin(vertical_angle),
-							cos(vertical_angle) * cos(horizontal_angle));
+				    sin(vertical_angle),
+				    cos(vertical_angle) * cos(horizontal_angle));
 
 		glm::vec3 right(sin(horizontal_angle - 3.14f / 2.0f),
-						0,
-						cos(horizontal_angle - 3.14f / 2.0f));
+				0,
+				cos(horizontal_angle - 3.14f / 2.0f));
 		glm::vec3 direction_without_pitch(sin(horizontal_angle), 0, cos(horizontal_angle));
 
 		if (in_air) {
@@ -405,13 +414,19 @@ int main()
 			}
 		}
 
-		for (auto m : monkeys) {
-			m->rotate_to_player(pos);
-			m->draw(pos, lightpos, model, view, proj);
-		}
-
 		for (int i = 0; i < monkeys.size(); i++) {
-			monkeys[i]->move_to_player(pos);
+			float gap = get_distance(monkeys[i]->vertices[0], monkeys[i]->vertices[2], pos[0], pos[2]);
+			if (gap <= visibility) {
+				monkeys[i]->cant_see_player = false;
+				monkeys[i]->move_to_player(pos);
+				monkeys[i]->rotate_to_player(pos);
+			} else {
+				// random movement here
+				monkeys[i]->cant_see_player = true;
+			}
+
+			monkeys[i]->draw(pos, lightpos, model, view, proj);
+			monkeys[i]->handle_random_movement();
 		}
 
 		glUseProgram(program_3d_polygon);
@@ -508,6 +523,9 @@ int main()
 		for (auto m : monkeys) {
 			if (within_tenths(m->vertices[0], pos[0]) && within_tenths(m->vertices[2], pos[2])) {
 				// Doesn't check height
+				// get_distance could be used for this as well
+				// ("diagonal" distance, basically hypotenuse AKA the
+				// shortest line.)
 				health--;
 			}
 		}
@@ -515,14 +533,15 @@ int main()
 		// TODO: fix '-' glyph seems to render as a space
 		// TODO: pack the arguments passed to draw_text that are the same every time into a struct
 		draw_text(
-				  string_format("Player health: %d", health), 100, D_HEIGHT - 150, 1, 0.0, 1.0, 0.0,
-				  glyphs, text_VAO, text_VBO, ortho_mvp,
-				  program_2d_text, program_2d_text_mvp_l, program_2d_text_color_l);
+			string_format("Player health: %d", health), 100, D_HEIGHT - 150, 1, 0.0, 1.0, 0.0,
+			glyphs, text_VAO, text_VBO, ortho_mvp,
+			program_2d_text, program_2d_text_mvp_l, program_2d_text_color_l);
 
 		draw_text(string_format("Pos: %f, %f, %f", pos[0], pos[1], pos[2]), 100.f, D_HEIGHT - 100.f, 1.f, 1.0f, 1.0f, 1.0f, glyphs, text_VAO, text_VBO, ortho_mvp, program_2d_text, program_2d_text_mvp_l, program_2d_text_color_l);
-		//printf("%d\n", monkeys[0].health);
+
 		for (int i = 0; i < monkeys.size(); i++) {
-			draw_text(string_format("Monkey #%d health: %d", i, monkeys[i]->health), 100, D_HEIGHT - 200 - i * 25, 1.0, 1.0, 1.0, 1.0, glyphs, text_VAO, text_VBO, ortho_mvp, program_2d_text, program_2d_text_mvp_l, program_2d_text_color_l);
+			float gap = get_distance(monkeys[i]->vertices[0], monkeys[i]->vertices[2], pos[0], pos[2]);
+			draw_text(string_format("Monkey #%d health: %d, distance: %f, aggro: %d", i, monkeys[i]->health, gap, !monkeys[i]->cant_see_player), 100, D_HEIGHT - 200 - i * 25, 1.0, 1.0, 1.0, 1.0, glyphs, text_VAO, text_VBO, ortho_mvp, program_2d_text, program_2d_text_mvp_l, program_2d_text_color_l);
 		}
 
 		glUniformMatrix4fv(program_2d_text_mvp_l, 1, GL_FALSE, &ortho_mvp[0][0]);
