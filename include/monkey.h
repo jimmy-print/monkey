@@ -14,7 +14,7 @@ public:
 	int randomly_moving = false;
 	float random_dx = (float) (rand() % 50) / 1000;
 	float random_dz = (float) (rand() % 50) / 1000;
-	Monkey(std::string objpath) : Model(objpath) {
+	Monkey(struct shared *s) : Model(s) {
 		int a = rand() % 2;
 		int b = rand() % 2;
 

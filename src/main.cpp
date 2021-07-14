@@ -78,6 +78,9 @@ int main()
 
 	srand(time(NULL));
 
+	struct shared ss = get_shared_data("obj.obj");
+	struct shared *s = &ss;
+
 	glfwInit();
 	glfwWindowHint(GLFW_SAMPLES, 4);
 	glfwWindowHint(GLFW_RESIZABLE, GL_FALSE);
@@ -246,15 +249,10 @@ int main()
 	stbi_image_free(ppdata);
 
 	std::vector<Monkey*> monkeys;
-	int monkeys_num = 30;
+	int monkeys_num = 50;
 	for (int i = 0; i < monkeys_num; i++) {
-		monkeys.push_back(new Monkey("obj.obj"));
+		monkeys.push_back(new Monkey(s));
 	}
-
-	monkeys[1]->move_x(10);
-	monkeys[2]->move_z(10);
-	monkeys[3]->move_x(10);
-	monkeys[3]->move_z(10);
 
 	glm::vec3 d;  // 3D unit direction vector
 	// Converted from spherical coordinate system variables (horizontal_angle, vertical_angle)
@@ -295,9 +293,12 @@ int main()
 	float bullet_animation_horizontal_speed = 0.05;
 
 	int i = 0;
+	int dd = 0;
 
 	while (!glfwWindowShouldClose(window)) {
 		i++;
+		//monkeys[0]->vertices = monkeys[0]->s->centered_rotated_vertices[dd];
+		dd++;
 		if (i % 10 == 0) {
 			// monkeys.push_back(new Monkey("obj.obj"));
 			// ^ for memory leak testing
@@ -575,4 +576,3 @@ bool within_tenths(float x, float y)
 float f(float x) {
 	return -1.02336 * x;
 }
-

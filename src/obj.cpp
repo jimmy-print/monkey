@@ -29,7 +29,7 @@ std::vector<std::string> split(std::string s) {
 	return v;
 }
 
-Model::Model(std::string objpath)
+struct shared get_shared_data(std::string objpath)
 {
 	std::string filestr = get_file_str(objpath);
 	std::istringstream stream(filestr);
@@ -38,19 +38,14 @@ Model::Model(std::string objpath)
 	std::vector<GLuint> vertex_indices;
 	std::vector<GLuint> uv_indices;
 	std::vector<GLuint> normal_indices;
+
 	std::vector<glm::vec3> tmp_vertices;
 	std::vector<glm::vec2> tmp_uvs;
 	std::vector<glm::vec3> tmp_normals;
 
-	shader = load_shader("shaders/3d_obj_vs", "shaders/3d_obj_fs");
-	lightpos_l = glGetUniformLocation(shader, "lightpos");
-	viewpos_l = glGetUniformLocation(shader, "viewpos");
-	lightcolor_l = glGetUniformLocation(shader, "lightcolor");
-	objectcolor_l = glGetUniformLocation(shader, "objectcolor");
-	ambient_strength_l = glGetUniformLocation(shader, "ambient_strength");
-	model_l = glGetUniformLocation(shader, "model");
-	view_l = glGetUniformLocation(shader, "view");
-	proj_l = glGetUniformLocation(shader, "proj");
+	std::vector<float> vertices;
+	std::vector<float> uvs;
+	std::vector<float> normals;
 
 	while (std::getline(stream, line)) {
 		std::vector<std::string> vector;
@@ -117,7 +112,70 @@ Model::Model(std::string objpath)
 		normals.push_back(vec.z);
 	}
 
-	// Load data into buffers
+	for (int i = 0; i < vertices.size(); i++) {
+		if ((i - 1) % 3 == 0) {
+			vertices[i] += 1.0;  // so that the models are above ground
+		}
+	}
+
+
+	// generate rotated copies of vertices
+	std::vector<std::vector<float>> centered_rotated_vertices;
+	int d = 0;  // the current degree of the rotated vertices
+	// is also the index of the rotated vertices in the 2D vector.
+
+	assert(vertices.size() % 3 == 0);
+
+	for (d = 0; d > -360; d--) {
+		std::vector<glm::vec3> tmp;
+		glm::vec3 tmpp;
+		for (int i = 0; i < vertices.size(); i++) {
+			if ((i - 0) % 3 == 0) {
+				tmpp[0] = vertices[i];
+			}
+			else if ((i - 1) % 3 == 0) {
+				tmpp[1] = vertices[i];
+			}
+			else if ((i - 2) % 3 == 0) {
+				tmpp[2] = vertices[i];
+				tmp.push_back(rotate_y_axis(tmpp, d));
+			}
+		}
+		assert(tmp.size() == vertices.size() / 3);
+		std::vector<float> tmp_in_float;
+		for (auto v : tmp) {
+			tmp_in_float.push_back(v[0]);
+			tmp_in_float.push_back(v[1]);
+			tmp_in_float.push_back(v[2]);
+		}
+		assert(tmp_in_float.size() == tmp.size() * 3);
+
+		centered_rotated_vertices.push_back(tmp_in_float);
+	}
+
+	struct shared s = {
+		vertices,
+		centered_rotated_vertices,
+		normals,
+		uvs
+	};
+	return s;
+}
+
+Model::Model(struct shared *sp)
+{
+	shader = load_shader("shaders/3d_obj_vs", "shaders/3d_obj_fs");
+	lightpos_l = glGetUniformLocation(shader, "lightpos");
+	viewpos_l = glGetUniformLocation(shader, "viewpos");
+	lightcolor_l = glGetUniformLocation(shader, "lightcolor");
+	objectcolor_l = glGetUniformLocation(shader, "objectcolor");
+	ambient_strength_l = glGetUniformLocation(shader, "ambient_strength");
+	model_l = glGetUniformLocation(shader, "model");
+	view_l = glGetUniformLocation(shader, "view");
+	proj_l = glGetUniformLocation(shader, "proj");
+
+	s = sp;
+	vertices = s->centered_vertices;
 
 	glGenVertexArrays(1, &VAO);
 	glBindVertexArray(VAO);
@@ -130,19 +188,9 @@ Model::Model(std::string objpath)
 
 	glGenBuffers(1, &VBO_normals);
 	glBindBuffer(GL_ARRAY_BUFFER, VBO_normals);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(float) * normals.size(), &normals[0], GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(float) * s->normals.size(), &s->normals[0], GL_STATIC_DRAW);
 	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), 0);
 	glEnableVertexAttribArray(1);
-
-	for (int i = 0; i < vertices.size(); i++) {
-		if ((i - 1) % 3 == 0) {
-			vertices[i] += 1.0;
-			//pfa(vertices);
-		}
-	}
-
-	centered_vertices = vertices;
-	original_vertices = vertices;
 }
 
 Model::~Model()
@@ -158,11 +206,7 @@ Model::~Model()
 	// monkeys that are constantly being destroyed and re-created.
 	glDeleteVertexArrays(1, &VAO);
 	glDeleteBuffers(1, &VBO_vertices);
-	glDeleteBuffers(1, &VBO_normals);
-
-	std::vector<float>().swap(vertices); // <- probably useless
-	std::vector<float>().swap(uvs);      //, as these vectors do not
-	std::vector<float>().swap(normals);  // contain pointers.
+	glDeleteBuffers(1, &VBO_normals);  // Could all monkeys share the same VBO_normals?
 }
 
 void Model::move_x(float dx) {
@@ -218,69 +262,11 @@ void Model::move_to_player(glm::vec3 pos) {
 	}
 }
 
-void Model::rotate(float xdeg, float ydeg, float zdeg) {
-	// TODO: optimise this function
-	std::vector<glm::vec3> original_vertices_vec3;
-	glm::vec3 tmp;
-	for (int i = 0; i < original_vertices.size(); i++) {
-		if (i % 3 == 0) {
-			tmp[0] = original_vertices[i];
-		}
-		if ((i - 1) % 3 == 0) {
-			tmp[1] = original_vertices[i];
-		}
-		if ((i - 2) % 3 == 0) {
-			tmp[2] = original_vertices[i];
-			original_vertices_vec3.push_back(tmp);
-		}
-	}
-
-	/*
-	  assert(original_vertices_vec3.size() == centered_vertices.size() / 3);
-	  assert(original_vertices_vec3.size() == original_vertices.size() / 3);
-	  assert(original_vertices_vec3.size() == vertices.size() / 3);
-	*/
-
-	// Perform rotation on original vertices vec3
-	for (int i = 0; i < original_vertices_vec3.size(); i++) {
-		original_vertices_vec3[i] = rotate_x_axis(original_vertices_vec3[i], xdeg);
-		original_vertices_vec3[i] = rotate_y_axis(original_vertices_vec3[i], ydeg);
-		original_vertices_vec3[i] = rotate_z_axis(original_vertices_vec3[i], zdeg);
-	}
-
-	// Put new values into float array of centered+rotated vertices
-	int ii = 0;
-	for (auto vertex_vec3 : original_vertices_vec3) {
-		// assert(ii % 3 == 0);
-		for (int i = 0; i < 3; i++) {
-			centered_vertices[ii] = vertex_vec3[i];
-			ii++;
-		}
-	}
-
-	// Transform centered+rotated vertices to actual rendered vertices
-	float dx, dy, dz;
-	dx = vertices[0] - centered_vertices[0];
-	dy = vertices[1] - centered_vertices[1];
-	dz = vertices[2] - centered_vertices[2];
-
-	// assert(vertices.size() == centered_vertices.size());
-	for (int i = 0; i < vertices.size(); i++) {
-		if ((i - 0) % 3 == 0) {
-			vertices[i] = centered_vertices[i] + dx;
-		} else if ((i - 1) % 3 == 0) {
-			vertices[i] = centered_vertices[i] + dy;
-		} else if ((i - 2) % 3 == 0) {
-			vertices[i] = centered_vertices[i] + dz;
-		}
-	}
-}
-
 void Model::rotate_to_player(glm::vec3 pos) {
 	float dx, dy, dz;
-	dx = vertices[0] - centered_vertices[0];
-	dy = vertices[1] - centered_vertices[1];
-	dz = vertices[2] - centered_vertices[2];
+	dx = vertices[0] - s->centered_vertices[0];
+	dy = vertices[1] - s->centered_vertices[1];
+	dz = vertices[2] - s->centered_vertices[2];
 
 	glm::vec3 centered_pos(pos[0] - dx, pos[1], pos[2] - dz);
 
@@ -291,16 +277,68 @@ void Model::rotate_to_player(glm::vec3 pos) {
 	float z = n_flat_pos[1];
 
 	float rot;
-	if (centered_pos[2] < 0) {
-		rot = 180 + deg(asin(x));
-	} else {
+
+	int quadrant;
+	if (centered_pos.z > 0 and centered_pos.x > 0)
+		quadrant = 1;
+	else if (centered_pos.z < 0 && centered_pos.x > 0)
+		quadrant = 2;
+	else if (centered_pos.z < 0 && centered_pos.x < 0)
+		quadrant = 3;
+	else if (centered_pos.z > 0 && centered_pos.x < 0)
+		quadrant = 4;
+
+	switch (quadrant) {
+	case 2:
+	case 3:
+		rot = 180 - deg(asin(x));
+		break;
+	case 1:
 		rot = deg(asin(-x));
+		break;
+	case 4:
+		rot = -deg(asin(-x));
+		break;
 	}
+
+	// TODO: simplify logic
 
 	if (!isnan(rot)) {
 		// if pos is at center of obj
 		// presumably caused by error with trigonometric functions
-		rotate(0, rot, 0);
+		// rot = abs(rot);
+		int rot_i;
+		rot_i = abs(round(rot));
+
+		if (quadrant == 4) {
+			rot_i = -rot_i;
+			rot_i += 360;
+			if (rot_i >= 360) {
+				rot_i = 359;
+			}
+		}
+
+		float saved_x = vertices[0];
+		float saved_y = vertices[1];
+		float saved_z = vertices[2];
+
+		vertices = s->centered_rotated_vertices[rot_i];
+
+		float dx = saved_x - s->centered_rotated_vertices[rot_i][0];
+		float dy = saved_y - s->centered_rotated_vertices[rot_i][1];
+		float dz = saved_z - s->centered_rotated_vertices[rot_i][2];
+
+		for (int i = 0; i < vertices.size(); i++) {
+			if ((i - 0) % 3 == 0) {
+				vertices[i] += dx;
+			}
+			else if ((i - 1) % 3 == 0) {
+				vertices[i] += dy;
+			}
+			else if ((i - 2) % 3 == 0) {
+				vertices[i] += dz;
+			}
+		}
 	}
 }
 

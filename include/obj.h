@@ -14,14 +14,28 @@
 
 std::vector<std::string> split(std::string s);
 
+struct shared {
+	std::vector<float> centered_vertices;
+	std::vector<std::vector<float>> centered_rotated_vertices;
+	// vector of float vectors, with each float vector being
+	// offset from centered_vertices by 1 additional deg. increment (or rad)
+	std::vector<float> normals;
+	std::vector<float> uvs;
+
+	// NOTE: i am not sure if uvs are normalised like normals.
+};
+
+struct shared get_shared_data(std::string objpath);
+
 class Model {
 public:
-	std::vector<float> vertices;
-	std::vector<float> uvs;
-	std::vector<float> normals;
+	std::vector<float> vertices;  
+	// actual, rendered vertices which are unique to each monkey
 
-	std::vector<float> centered_vertices;
-	std::vector<float> original_vertices;
+	struct shared *s;
+
+	float x = 0;
+	float z = 0;
 
 	// uniform locations
 	GLuint lightpos_l;
@@ -38,7 +52,7 @@ public:
 
 	GLuint VAO;
 	GLuint VBO_vertices, VBO_normals;
-	Model(std::string objpath);
+	Model(struct shared *sp);
 	~Model();
 	void move_x(float dx);
 	void move_y(float dy);
