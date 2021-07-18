@@ -96,7 +96,7 @@ int main()
 	glm::mat4 proj = glm::perspective(
 		glm::radians(FOV), (float) D_WIDTH / (float) D_HEIGHT, 0.1f, 100.0f);
 	float initial_y = 1;
-	glm::vec3 pos(5, 0.5, 5);
+	glm::vec3 pos((rand() % 100) - 50, 100, (rand() % 100) - 50);
 	glm::mat4 view = glm::lookAt(pos,
 				     glm::vec3(0, 0, -5),
 				     glm::vec3(0, 1, 0));
@@ -249,9 +249,9 @@ int main()
 	stbi_image_free(ppdata);
 
 	std::vector<Monkey*> monkeys;
-	int monkeys_num = 50;
-	for (int i = 0; i < monkeys_num; i++) {
-		monkeys.push_back(new Monkey(s));
+	int init_monkeys_num = 20;
+	for (int i = 0; i < init_monkeys_num; i++) {
+		monkeys.push_back(new Monkey(s, pos));
 	}
 
 	glm::vec3 d;  // 3D unit direction vector
@@ -300,8 +300,16 @@ int main()
 		//monkeys[0]->vertices = monkeys[0]->s->centered_rotated_vertices[dd];
 		dd++;
 		if (i % 10 == 0) {
-			// monkeys.push_back(new Monkey("obj.obj"));
+			/*
+			Monkey* tmp = new Monkey(s, pos);
+			monkeys.push_back(tmp);
 			// ^ for memory leak testing
+			*/
+		}
+
+		if (rand() % 200 == 0) {
+			Monkey* tmp = new Monkey(s, pos);
+			monkeys.push_back(tmp);
 		}
 
 		if (bullet_moving) {
@@ -534,15 +542,14 @@ int main()
 		// TODO: fix '-' glyph seems to render as a space
 		// TODO: pack the arguments passed to draw_text that are the same every time into a struct
 		draw_text(
-			string_format("Player health: %d", health), 100, D_HEIGHT - 150, 1, 0.0, 1.0, 0.0,
+			string_format("Player health: %d", health), 20, D_HEIGHT - 50, 1, 0.0, 1.0, 0.0,
 			glyphs, text_VAO, text_VBO, ortho_mvp,
 			program_2d_text, program_2d_text_mvp_l, program_2d_text_color_l);
 
-		draw_text(string_format("Pos: %f, %f, %f", pos[0], pos[1], pos[2]), 100.f, D_HEIGHT - 100.f, 1.f, 1.0f, 1.0f, 1.0f, glyphs, text_VAO, text_VBO, ortho_mvp, program_2d_text, program_2d_text_mvp_l, program_2d_text_color_l);
-
 		for (int i = 0; i < monkeys.size(); i++) {
 			float gap = get_distance(monkeys[i]->vertices[0], monkeys[i]->vertices[2], pos[0], pos[2]);
-			draw_text(string_format("Monkey #%d health: %d, distance: %f, aggro: %d", i, monkeys[i]->health, gap, !monkeys[i]->cant_see_player), 100, D_HEIGHT - 200 - i * 25, 1.0, 1.0, 1.0, 1.0, glyphs, text_VAO, text_VBO, ortho_mvp, program_2d_text, program_2d_text_mvp_l, program_2d_text_color_l);
+			draw_text(string_format("Monkey #%d health: %d, distance: %f, aggro: %d", i, monkeys[i]->health, gap, !monkeys[i]->cant_see_player),
+					  20, D_HEIGHT - 75 - i * 25, 1.0, 1.0, 1.0, 1.0, glyphs, text_VAO, text_VBO, ortho_mvp, program_2d_text, program_2d_text_mvp_l, program_2d_text_color_l);
 		}
 
 		glUniformMatrix4fv(program_2d_text_mvp_l, 1, GL_FALSE, &ortho_mvp[0][0]);

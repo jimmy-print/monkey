@@ -14,12 +14,27 @@ public:
 	int randomly_moving = false;
 	float random_dx = (float) (rand() % 50) / 1000;
 	float random_dz = (float) (rand() % 50) / 1000;
-	Monkey(struct shared *s) : Model(s) {
+	Monkey(struct shared *s, glm::vec3 pos) : Model(s) {
 		int a = rand() % 2;
 		int b = rand() % 2;
 
-		random_dx = -random_dx ? a == 1 : random_dx;
-		random_dz = -random_dz ? b == 1 : random_dz;
+		random_dx = a == 1 ? -random_dx : random_dx;
+		random_dz = b == 1 ? -random_dz : random_dz;
+
+		int spawn_range = 10;
+
+		float spawn_dx, spawn_dz;
+		spawn_dx = rand() % spawn_range * 2;
+		spawn_dx = rand() % 2 == 1 ? -spawn_dx : spawn_dx;
+		spawn_dz = rand() % spawn_range * 2;
+		spawn_dz = rand() % 2 == 1 ? -spawn_dz : spawn_dz;
+
+		float spawn_dx_abs, spawn_dz_abs; // to origin
+		spawn_dx_abs = pos[0] + spawn_dx;
+		spawn_dz_abs = pos[2] + spawn_dz;
+
+		move_x(spawn_dx_abs);
+		move_z(spawn_dz_abs);
 	}
 
 	void handle_random_movement() {
