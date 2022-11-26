@@ -279,7 +279,7 @@ void Model::rotate_to_player(glm::vec3 pos) {
 	float rot;
 
 	int quadrant;
-	if (centered_pos.z > 0 and centered_pos.x > 0)
+	if (centered_pos.z > 0 && centered_pos.x > 0)
 		quadrant = 1;
 	else if (centered_pos.z < 0 && centered_pos.x > 0)
 		quadrant = 2;
