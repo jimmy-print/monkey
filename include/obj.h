@@ -16,7 +16,7 @@ std::vector<std::string> split(std::string s);
 
 struct shared {
 	std::vector<float> centered_vertices;
-	std::vector<std::vector<float>> centered_rotated_vertices;
+	std::vector<std::vector<float >> centered_rotated_vertices;
 	// vector of float vectors, with each float vector being
 	// offset from centered_vertices by 1 additional deg. increment (or rad)
 	std::vector<float> normals;

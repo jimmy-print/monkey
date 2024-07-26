@@ -10,8 +10,8 @@
 
 #define PI 3.141592653589793
 
-#define D_WIDTH 1920
-#define D_HEIGHT 1080
+#define D_WIDTH 1280
+#define D_HEIGHT 720
 
 void pfa(std::vector<float> v);
 float rad(float deg);

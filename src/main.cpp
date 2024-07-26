@@ -82,6 +82,15 @@ int main()
 	struct shared *s = &ss;
 
 	glfwInit();
+
+	  glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+  glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+  glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+#ifdef __APPLE__
+  std::cout << "I'm apple machine" << std::endl;
+  glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
+#endif
+
 	glfwWindowHint(GLFW_SAMPLES, 4);
 	glfwWindowHint(GLFW_RESIZABLE, GL_FALSE);
 	GLFWwindow *window = glfwCreateWindow(D_WIDTH, D_HEIGHT, "monkey", 0, 0);
@@ -448,7 +457,7 @@ int main()
 		glBindVertexArray(image_VAO);
 		glBindBuffer(GL_ARRAY_BUFFER, image_VBO);
 		glUseProgram(program_3d_image);
-		glDrawArrays(GL_QUADS, 0, 12);
+		glDrawArrays(GL_TRIANGLES, 0, 12);
 		glUniformMatrix4fv(program_3d_image_mvp_l, 1, GL_FALSE, &mvp[0][0]);
 
 		glUseProgram(program_3d_polygon);
@@ -478,7 +487,7 @@ int main()
 				glBindTexture(GL_TEXTURE_2D, gun_texture);
 				glBindVertexArray(gun_VAO);
 				glBindBuffer(GL_ARRAY_BUFFER, gun_VBO);
-				glDrawArrays(GL_QUADS, 0, 12);
+				glDrawArrays(GL_TRIANGLES, 0, 12);
 			}
 		}
 		if (bullet_moving) {
@@ -486,13 +495,13 @@ int main()
 				glBindTexture(GL_TEXTURE_2D, gun_texture);
 				glBindVertexArray(gun_VAO);
 				glBindBuffer(GL_ARRAY_BUFFER, gun_VBO);
-				glDrawArrays(GL_QUADS, 0, 12);
+				glDrawArrays(GL_TRIANGLES, 0, 12);
 			}
 			if (click) {
 				glBindTexture(GL_TEXTURE_2D, gun_texture);
 				glBindVertexArray(gun_VAO);
 				glBindBuffer(GL_ARRAY_BUFFER, gun_VBO);
-				glDrawArrays(GL_QUADS, 0, 12);
+				glDrawArrays(GL_TRIANGLES, 0, 12);
 			}
 		}
 		if (click) {
@@ -514,7 +523,7 @@ int main()
 				glBindTexture(GL_TEXTURE_2D, gun_2_texture);
 				glBindVertexArray(gun_2_VAO);
 				glBindBuffer(GL_ARRAY_BUFFER, gun_2_VBO);
-				glDrawArrays(GL_QUADS, 0, 12);
+				glDrawArrays(GL_TRIANGLES, 0, 12);
 			}
 			bullet_moving = true;
 
@@ -542,7 +551,7 @@ int main()
 		// TODO: fix '-' glyph seems to render as a space
 		// TODO: pack the arguments passed to draw_text that are the same every time into a struct
 		draw_text(
-			string_format("Player health: %d", health), 20, D_HEIGHT - 50, 1, 0.0, 1.0, 0.0,
+			string_format("Player asdfhealth: %d", health), 20, D_HEIGHT - 50, 1, 0.0, 1.0, 0.0,
 			glyphs, text_VAO, text_VBO, ortho_mvp,
 			program_2d_text, program_2d_text_mvp_l, program_2d_text_color_l);
 
@@ -551,8 +560,6 @@ int main()
 			draw_text(string_format("Monkey #%d health: %d, distance: %f, aggro: %d", i, monkeys[i]->health, gap, !monkeys[i]->cant_see_player),
 					  20, D_HEIGHT - 75 - i * 25, 1.0, 1.0, 1.0, 1.0, glyphs, text_VAO, text_VBO, ortho_mvp, program_2d_text, program_2d_text_mvp_l, program_2d_text_color_l);
 		}
-
-		glUniformMatrix4fv(program_2d_text_mvp_l, 1, GL_FALSE, &ortho_mvp[0][0]);
 
 		glUseProgram(program_2d_polygon);
 		glBegin(GL_LINES);
@@ -570,6 +577,9 @@ int main()
 		glBegin(GL_POINTS);
 		glVertex2f(bullet_x, f(bullet_x));
 		glEnd();
+
+		draw_text("TEST", 300, D_HEIGHT - 50, 1, 1.0, 1.0, 1.0, glyphs, text_VAO, text_VBO, ortho_mvp, program_2d_text, program_2d_text_mvp_l, program_2d_text_color_l);
+
 
 		glfwSwapBuffers(window);
 	}

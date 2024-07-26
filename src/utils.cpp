@@ -105,7 +105,7 @@ GLuint load_shader(std::string vs_filename, std::string fs_filename)
 		glGetShaderiv(vs, GL_INFO_LOG_LENGTH, &vs_max_len);
 		std::vector<GLchar> vs_error_log(vs_max_len);
 		glGetShaderInfoLog(vs, vs_max_len, &vs_max_len, &vs_error_log[0]);
-
+		std::cout << vs_filename << "\n";
 		std::cout << "ERROR: Vertex shader compilation\n";
 		for (auto c : vs_error_log) {
 			std::cout << c;
@@ -118,6 +118,7 @@ GLuint load_shader(std::string vs_filename, std::string fs_filename)
 		std::vector<GLchar> fs_error_log(fs_max_len);
 		glGetShaderInfoLog(fs, fs_max_len, &fs_max_len, &fs_error_log[0]);
 
+		std::cout << fs_filename << "\n";
 		std::cout << "ERROR: Fragment shader compilation\n";
 		for (auto c : fs_error_log) {
 			std::cout << c;
