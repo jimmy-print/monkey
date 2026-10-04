@@ -1,6 +1,7 @@
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 
+#define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/intersect.hpp>
 
@@ -114,7 +115,7 @@ struct shared get_shared_data(std::string objpath)
 
 	for (int i = 0; i < vertices.size(); i++) {
 		if ((i - 1) % 3 == 0) {
-			vertices[i] += 1.0;  // so that the models are above ground
+			vertices[i] += 0.5;  // so that the models are above ground
 		}
 	}
 
@@ -191,6 +192,9 @@ Model::Model(struct shared *sp)
 	glBufferData(GL_ARRAY_BUFFER, sizeof(float) * s->normals.size(), &s->normals[0], GL_STATIC_DRAW);
 	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), 0);
 	glEnableVertexAttribArray(1);
+
+
+
 }
 
 Model::~Model()
@@ -210,6 +214,7 @@ Model::~Model()
 }
 
 void Model::move_x(float dx) {
+	displacement_x += dx;	
 	for (int i = 0; i < vertices.size(); i++) {
 		if (i %3 == 0){
 			vertices[i] += dx;
@@ -218,6 +223,7 @@ void Model::move_x(float dx) {
 }
 
 void Model::move_y(float dy) {
+	displacement_y += dy;
 	for (int i = 0; i < vertices.size(); i++) {
 		if ((i - 1) % 3 == 0) {
 			vertices[i] += dy;
@@ -226,6 +232,7 @@ void Model::move_y(float dy) {
 }
 
 void Model::move_z(float dz) {
+	displacement_z += dz;
 	for (int i = 0; i < vertices.size(); i++) {
 		if ((i - 2) % 3 == 0) {
 			vertices[i] += dz;
@@ -342,7 +349,7 @@ void Model::rotate_to_player(glm::vec3 pos) {
 	}
 }
 
-void Model::draw(glm::vec3 pos, glm::vec3 lightpos, glm::mat4 model, glm::mat4 view, glm::mat4 proj)
+void Model::draw(glm::vec3 pos, glm::vec3 lightpos, glm::mat4 model, glm::mat4 view, glm::mat4 proj, glm::vec3 color)
 {
 	glBindBuffer(GL_ARRAY_BUFFER, VBO_vertices);
 
@@ -350,13 +357,13 @@ void Model::draw(glm::vec3 pos, glm::vec3 lightpos, glm::mat4 model, glm::mat4 v
 	glUseProgram(shader);
 
 	glUniform3f(lightcolor_l, 1.0, 1.0, 1.0);
-	glUniform3f(objectcolor_l, 1.0, 1.0, 1.0);
+	glUniform3f(objectcolor_l, color[0], color[1], color[2]);
 	glUniform3f(viewpos_l, pos[0], pos[1], pos[2]);
 	glUniform3f(lightpos_l, lightpos[0], lightpos[1], lightpos[2]);
 	glUniform1f(ambient_strength_l, 1.f);
 
 	glBindVertexArray(VAO);
-	glDrawArrays(GL_TRIANGLES, 0, vertices.size());
+	glDrawArrays(GL_TRIANGLES, 0, vertices.size() / 3);
 
 	glUniformMatrix4fv(model_l, 1, GL_FALSE, &model[0][0]);
 	glUniformMatrix4fv(view_l, 1, GL_FALSE, &view[0][0]);

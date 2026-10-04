@@ -21,5 +21,5 @@ void main()
 	vec3 reflectdir = reflect(-lightdir, norm);
 	float spec = pow(max(dot(viewdir, reflectdir), 0.0), 32);
 	vec3 specular = specularstrength * spec * lightcolor;
-	result = vec4((ambient + diffuse + specular) * objectcolor, 1.0);
+	result = vec4((ambient + diffuse + specular) * objectcolor, 0.8);
 }

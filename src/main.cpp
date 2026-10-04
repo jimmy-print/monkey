@@ -1,5 +1,7 @@
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
+
+#define GLM_ENABLE_EXPERIMENTAL
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/intersect.hpp>
@@ -14,56 +16,73 @@
 #include <cmath>
 #include <map>
 #include <random>
+#include <algorithm>
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
+
+#define START_WIREFRAME glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+#define END_WIREFRAME glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
 #include <obj.h>
 #include <utils.h>
 #include <text.h>
 #include <monkey.h>
 
-#define ORIGIN glVertex3f(0.0, 0.0, 0.0);
-
 bool click = false;
-bool freecam = false;
+bool freecam = true;
 glm::vec2 result;
 
 // https://stackoverflow.com/a/26221725/11772905
 // CC0 1.0
-template<typename ... Args>
-std::string string_format( const std::string& format, Args ... args )
+template <typename... Args>
+std::string string_format(const std::string &format, Args... args)
 {
-	int size_s = std::snprintf( nullptr, 0, format.c_str(), args ... ) + 1; // Extra space for '\0'
-	if( size_s <= 0 ){ throw std::runtime_error( "Error during formatting." ); }
-	auto size = static_cast<size_t>( size_s );
-	auto buf = std::make_unique<char[]>( size );
-	std::snprintf( buf.get(), size, format.c_str(), args ... );
-	return std::string( buf.get(), buf.get() + size - 1 ); // We don't want the '\0' inside
+	int size_s = std::snprintf(nullptr, 0, format.c_str(), args...) + 1; // Extra space for '\0'
+	if (size_s <= 0)
+	{
+		throw std::runtime_error("Error during formatting.");
+	}
+	auto size = static_cast<size_t>(size_s);
+	auto buf = std::make_unique<char[]>(size);
+	std::snprintf(buf.get(), size, format.c_str(), args...);
+	std::string ret_val = std::string(buf.get(), buf.get() + size - 1); // We don't want the '\0' inside
+	std::replace(ret_val.begin(), ret_val.end(), '-', '_');
+	return ret_val;
 }
 
 int init_time, now_time;
 void log(std::string msg)
 {
 	now_time = std::chrono::duration_cast<std::chrono::milliseconds>(
-		std::chrono::system_clock::now().time_since_epoch()).count();
-	float diff = (float) (now_time - init_time) / 1000;
+				   std::chrono::system_clock::now().time_since_epoch())
+				   .count();
+	float diff = (float)(now_time - init_time) / 1000;
 	std::cout << diff << " " << msg << "\n";
 }
 
-void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
+void mouse_button_callback(GLFWwindow *window, int button, int action, int mods)
 {
-	if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS && click == false) {
+	if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS && click == false)
+	{
 		click = true;
-	} else {
+	}
+	else
+	{
 		click = false;
 	}
 }
 
+float wireframe = false;
 void key_callback(GLFWwindow *window, int key, int scancode, int action, int mods)
 {
-	if (key == GLFW_KEY_F && action == GLFW_PRESS) {
+	if (key == GLFW_KEY_F && action == GLFW_PRESS)
+	{
 		freecam = !freecam;
+	}
+	if (key == GLFW_KEY_P && action == GLFW_PRESS)
+	{
+		wireframe = !wireframe;
 	}
 }
 
@@ -74,7 +93,8 @@ float f(float x);
 int main()
 {
 	init_time = std::chrono::duration_cast<std::chrono::milliseconds>(
-		std::chrono::system_clock::now().time_since_epoch()).count();
+					std::chrono::system_clock::now().time_since_epoch())
+					.count();
 
 	srand(time(NULL));
 
@@ -83,12 +103,12 @@ int main()
 
 	glfwInit();
 
-	  glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-  glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-  glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 #ifdef __APPLE__
-  std::cout << "I'm apple machine" << std::endl;
-  glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
+	std::cout << "I'm apple machine" << std::endl;
+	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 #endif
 
 	glfwWindowHint(GLFW_SAMPLES, 4);
@@ -103,12 +123,12 @@ int main()
 
 	float FOV = 70;
 	glm::mat4 proj = glm::perspective(
-		glm::radians(FOV), (float) D_WIDTH / (float) D_HEIGHT, 0.1f, 100.0f);
+		glm::radians(FOV), (float)D_WIDTH / (float)D_HEIGHT, 0.1f, 100.0f);
 	float initial_y = 1;
-	glm::vec3 pos((rand() % 100) - 50, 100, (rand() % 100) - 50);
+	glm::vec3 pos(-3, 2, 0);
 	glm::mat4 view = glm::lookAt(pos,
-				     glm::vec3(0, 0, -5),
-				     glm::vec3(0, 1, 0));
+								 glm::vec3(1, -0.2, 0),
+								 glm::vec3(0, 1, 0));
 	glm::mat4 model(1.0f);
 	float horizontal_angle, vertical_angle;
 	float horizontal_angle_deg, vertical_angle_deg;
@@ -123,33 +143,136 @@ int main()
 	glEnable(GL_DEPTH_TEST);
 	glDepthFunc(GL_LESS);
 
+	glm::vec3 P(-1.8, 0.1, 0.8);  // Vector representing location of effector point
+	float R = 0.08;  // Half the length of the cube surrounding the effector point
+	// 3D polygons section
 	GLuint program_3d_polygon = load_shader("shaders/3d_polygon_vs", "shaders/3d_polygon_fs");
 	GLuint program_3d_polygon_mvp_l = glGetUniformLocation(program_3d_polygon, "mvp");
 
-	float vs[] = {
-		0.0, 0.0, 0.0,
-		0.0, 1.0, 0.0,
-		1.0, 1.0, 0.0,
-		1.0, 0.0, 0.0};
+	float axis_len = 20.0f;
+	float axis_height = 0.1f;
+	float xz_dir_poly_vs[] = {
+		// red and blue rectangle that specifies +x and +z axes respectively.
+		0.0, 0.0, 0.0, RED,
+		0.0, axis_height, 0.0, RED,
+		axis_len, 0.0, 0.0, RED,
+		axis_len, 0.0, 0.0, RED,
+		axis_len,
+		axis_height,
+		0.0,
+		RED,
+		0.0,
+		axis_height,
+		0.0,
+		RED,
+
+		0.0,
+		0.0,
+		0.0,
+		BLUE,
+		0.0,
+		axis_height,
+		0.0,
+		BLUE,
+		0.0,
+		0.0,
+		axis_len,
+		BLUE,
+		0.0,
+		0.0,
+		axis_len,
+		BLUE,
+		0.0,
+		axis_height,
+		axis_len,
+		BLUE,
+		0.0,
+		axis_height,
+		0.0,
+		BLUE,
+
+		P[0]-R/2, P[1]+R/2, P[2]-R/2, YELLOW,    // Cube representing space around the effector point.
+		P[0]-R/2, P[1]-R/2, P[2]-R/2, YELLOW,
+		P[0]+R/2, P[1]-R/2, P[2]-R/2, YELLOW,
+
+		P[0]-R/2, P[1]+R/2, P[2]-R/2, YELLOW,
+		P[0]+R/2, P[1]+R/2, P[2]-R/2, YELLOW,
+		P[0]+R/2, P[1]-R/2, P[2]-R/2, YELLOW,
+
+		P[0]-R/2, P[1]+R/2, P[2]+R/2, YELLOW,
+		P[0]-R/2, P[1]-R/2, P[2]+R/2, YELLOW,
+		P[0]+R/2, P[1]-R/2, P[2]+R/2, YELLOW,
+
+		P[0]-R/2, P[1]+R/2, P[2]+R/2, YELLOW,
+		P[0]+R/2, P[1]+R/2, P[2]+R/2, YELLOW,
+		P[0]+R/2, P[1]-R/2, P[2]+R/2, YELLOW,
+
+
+		P[0]-R/2, P[1]+R/2, P[2]-R/2, YELLOW,
+		P[0]-R/2, P[1]+R/2, P[2]+R/2, YELLOW,
+		P[0]-R/2, P[1]-R/2, P[2]-R/2, YELLOW,
+
+		P[0]-R/2, P[1]-R/2, P[2]-R/2, YELLOW,
+		P[0]-R/2, P[1]-R/2, P[2]+R/2, YELLOW,
+		P[0]-R/2, P[1]+R/2, P[2]+R/2, YELLOW,
+
+		P[0]+R/2, P[1]+R/2, P[2]-R/2, YELLOW,
+  		P[0]+R/2, P[1]+R/2, P[2]+R/2, YELLOW,
+  		P[0]+R/2, P[1]-R/2, P[2]-R/2, YELLOW,
+  
+  		P[0]+R/2, P[1]-R/2, P[2]-R/2, YELLOW,
+  		P[0]+R/2, P[1]-R/2, P[2]+R/2, YELLOW,
+  		P[0]+R/2, P[1]+R/2, P[2]+R/2, YELLOW,
+	};
 	GLuint VAO, VBO;
 	glGenVertexArrays(1, &VAO);
 	glBindVertexArray(VAO);
 
 	glGenBuffers(1, &VBO);
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(vs), vs, GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(xz_dir_poly_vs), xz_dir_poly_vs, GL_STATIC_DRAW);
 
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*) 0);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void *)(0 * sizeof(float)));
 	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void *)(3 * sizeof(float)));
+	glEnableVertexAttribArray(1);
 
 	// image section
 	GLuint program_3d_image = load_shader("shaders/3d_image_vs", "shaders/3d_image_fs");
 	GLuint program_3d_image_mvp_l = glGetUniformLocation(program_3d_image, "mvp");
+	float radius_of_map = 100.f;
 	float image_vs[] = {
-		-1000.0, 0.0, -1000.0,    0.0, 0.0,
-		1000.0, 0.0, -1000.0,   0.0, 100.0,
-		1000.0, 0.0, 1000.0,  100.0, 100.0,
-		-1000.0, 0.0, 1000.0,   100.0, 0.0
+		-radius_of_map,
+		0.0,
+		-radius_of_map,
+		0.0,
+		0.0, // lower left
+		-radius_of_map,
+		0.0,
+		radius_of_map,
+		0.0,
+		5.0, // upper left   the 5.0 means something like 5 to 1 scaling of the floor image.
+		radius_of_map,
+		0.0,
+		-radius_of_map,
+		5.0,
+		0.0, // lower right
+
+		-radius_of_map,
+		0.0,
+		radius_of_map,
+		0.0,
+		5.0, // upper left
+		radius_of_map,
+		0.0,
+		radius_of_map,
+		5.0,
+		5.0, // upper right
+		radius_of_map,
+		0.0,
+		-radius_of_map,
+		5.0,
+		0.0, // lower right
 	};
 	GLuint image_VAO, image_VBO;
 	glGenVertexArrays(1, &image_VAO);
@@ -159,9 +282,9 @@ int main()
 	glBindBuffer(GL_ARRAY_BUFFER, image_VBO);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(image_vs), image_vs, GL_STATIC_DRAW);
 
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*) (0 * sizeof(float)));
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void *)(0 * sizeof(float)));
 	glEnableVertexAttribArray(0);
-	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*) (3 * sizeof(float)));
+	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void *)(3 * sizeof(float)));
 	glEnableVertexAttribArray(1);
 
 	stbi_set_flip_vertically_on_load(true);
@@ -173,97 +296,54 @@ int main()
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	int w, h, n;
-	unsigned char* data = stbi_load("Grass.jpg", &w, &h, &n, 0);
-	if (data) {
+	unsigned char *data = stbi_load("Grass.jpg", &w, &h, &n, 0);
+	if (data)
+	{
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, w, h, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
-	} else {
+	}
+	else
+	{
 		std::cout << "Failed to load Grass.jpg" << "\n";
 	}
 	stbi_image_free(data);
 
+
+
 	GLuint program_2d_polygon = load_shader("shaders/2d_polygon_vs", "shaders/2d_polygon_fs");
 	GLuint program_2d_polygon_color_l = glGetUniformLocation(program_2d_polygon, "color_l");
+	// Load vs for Crosshair.
+	float crosshair_vs[] = {
+		0.0, 0.0,
+		0.0, 0.1,
+		0.0, 0.0,
+		0.0, -0.1,
+		0.0, 0.0,
+		0.05, 0.0,
+		0.0, 0.0,
+		-0.05, 0.0,
+	};
+	GLuint poly2_VAO, poly2_VBO;
+	glGenVertexArrays(1, &poly2_VAO);
+	glBindVertexArray(poly2_VAO);
+	glGenBuffers(1, &poly2_VBO);
+	glBindBuffer(GL_ARRAY_BUFFER, poly2_VBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(crosshair_vs), crosshair_vs, GL_STATIC_DRAW);
+	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void*)(0 * sizeof(float)));
+	glEnableVertexAttribArray(0);
+
+
+
 
 	GLuint program_2d_image = load_shader("shaders/2d_image_vs", "shaders/2d_image_fs");
-	float gun_vs[] = {
-		0.2, -1.0,  0.0, 0.0,
-		0.2, -0.2,  0.0, 1.0,
-		0.8, -0.2,  1.0, 1.0,
-		0.8, -1.0,  1.0, 0.0
-	};
-	GLuint gun_VAO, gun_VBO;
-	glGenVertexArrays(1, &gun_VAO);
-	glBindVertexArray(gun_VAO);
 
-	glGenBuffers(1, &gun_VBO);
-	glBindBuffer(GL_ARRAY_BUFFER, gun_VBO);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(gun_vs), gun_vs, GL_STATIC_DRAW);
-
-	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*) (0 * sizeof(float)));
-	glEnableVertexAttribArray(0);
-	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*) (2 * sizeof(float)));
-	glEnableVertexAttribArray(1);
-
-	glEnable(GL_BLEND);
-	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-	GLuint gun_texture;
-	glGenTextures(1, &gun_texture);
-	glBindTexture(GL_TEXTURE_2D, gun_texture);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	int pw, ph, pn;
-	unsigned char* pdata = stbi_load("Pistol.png", &pw, &ph, &pn, 0);
-	if (pdata) {
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, pw, ph, 0, GL_RGBA, GL_UNSIGNED_BYTE, pdata);
-	} else {
-		std::cout << "Failed to load Pistol.png" << "\n";
-	}
-	stbi_image_free(pdata);
-
-	float gun_2_vs[] = {
-		0.2, -1.0,  0.0, 0.0,
-		0.2, -0.2,  0.0, 1.0,
-		0.8, -0.2,  1.0, 1.0,
-		0.8, -1.0,  1.0, 0.0
-	};
-	GLuint gun_2_VAO, gun_2_VBO;
-	glGenVertexArrays(1, &gun_2_VAO);
-	glBindVertexArray(gun_2_VAO);
-
-	glGenBuffers(1, &gun_2_VBO);
-	glBindBuffer(GL_ARRAY_BUFFER, gun_2_VBO);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(gun_2_vs), gun_2_vs, GL_STATIC_DRAW);
-
-	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*) (0 * sizeof(float)));
-	glEnableVertexAttribArray(0);
-	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*) (2 * sizeof(float)));
-	glEnableVertexAttribArray(1);
-
-	GLuint gun_2_texture;
-	glGenTextures(1, &gun_2_texture);
-	glBindTexture(GL_TEXTURE_2D, gun_2_texture);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	int ppw, pph, ppn;
-	unsigned char* ppdata = stbi_load("Pistol-2.png", &ppw, &pph, &ppn, 0);
-	if (ppdata) {
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, ppw, pph, 0, GL_RGBA, GL_UNSIGNED_BYTE, ppdata);
-	} else {
-		std::cout << "Failed to load Pistol-2.png" << "\n";
-	}
-	stbi_image_free(ppdata);
-
-	std::vector<Monkey*> monkeys;
+	std::vector<Monkey *> monkeys;
 	int init_monkeys_num = 20;
-	for (int i = 0; i < init_monkeys_num; i++) {
+	for (int i = 0; i < init_monkeys_num; i++)
+	{
 		monkeys.push_back(new Monkey(s, pos));
 	}
 
-	glm::vec3 d;  // 3D unit direction vector
+	glm::vec3 d; // 3D unit direction vector
 	// Converted from spherical coordinate system variables (horizontal_angle, vertical_angle)
 	// Different from glm::vec3 direction, which is used to calculate the view matrix.
 
@@ -274,7 +354,7 @@ int main()
 	float jump_strength = 0.1;
 	bool in_air = false;
 
-	float slowdown_multiplier = 0.5;
+	float slowdown_multiplier = 0.1;
 	float actual_travel_speed = travel_speed;
 
 	float bullet_x = 0.214;
@@ -304,39 +384,144 @@ int main()
 	int i = 0;
 	int dd = 0;
 
-	while (!glfwWindowShouldClose(window)) {
+	// Load spyder body here
+	shared body_s = get_shared_data("body.obj");
+	Model spyder_body(&body_s);
+
+	// First leg: trochanter
+	float trochanter_length = 0.3;
+	// Since trochanter can only rotate in the xz plane from spyder_body,
+	// it only has yaw.
+	
+	float trochanter_yaw = rad(-60);
+	// in radians, where positive means that it rotates counter-clockwise viewed from top.
+	// this is also absolute, relative to world pos.
+
+	glm::vec3 trochanter_start_pos(-0.949193, 0.645508, 0.531212);
+	glm::vec3 orig_trochanter_start_pos = glm::vec3(trochanter_start_pos[0], trochanter_start_pos[1], trochanter_start_pos[2]);
+	glm::vec3 trochanter_end_pos(
+		trochanter_start_pos[0] + trochanter_length * sin(trochanter_yaw),
+		trochanter_start_pos[1],
+		trochanter_start_pos[2] + trochanter_length * cos(trochanter_yaw));
+
+	float trochanter_poly_vs[] = {
+		trochanter_start_pos[0],
+		trochanter_start_pos[1],
+		trochanter_start_pos[2],
+		WHITE,
+		trochanter_end_pos[0],
+		trochanter_end_pos[1],
+		trochanter_end_pos[2],
+		WHITE,
+		trochanter_end_pos[0],
+		trochanter_end_pos[1],
+		trochanter_end_pos[2],
+		WHITE,
+	};
+	GLuint trochanter_VAO, trochanter_VBO;
+	glGenVertexArrays(1, &trochanter_VAO);
+	glBindVertexArray(trochanter_VAO);
+
+	glGenBuffers(1, &trochanter_VBO);
+	glBindBuffer(GL_ARRAY_BUFFER, trochanter_VBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(trochanter_poly_vs), trochanter_poly_vs, GL_STATIC_DRAW);
+
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void *)(0 * sizeof(float)));
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void *)(3 * sizeof(float)));
+	glEnableVertexAttribArray(1);
+
+	// Second leg: femur
+	float femur_length = 0.75;
+	float femur_pitch = rad(-70); // in radians, where positive means that it rotates... the spyder body is on the player's left. then you look at the femur.
+	glm::vec3 femur_start_pos(trochanter_end_pos[0], trochanter_end_pos[1], trochanter_end_pos[2]);
+
+	glm::vec3 trochanter_dir_vector(
+		trochanter_end_pos[0] - trochanter_start_pos[0],
+		trochanter_end_pos[1] - trochanter_start_pos[1],
+		trochanter_end_pos[2] - trochanter_start_pos[2]);
+	// this vector is guaranteed to lay flat in the xz plane, i.e. not already be pointing 'upwards' or 'downwards' in the y direction.
+	std::cout << trochanter_dir_vector[0] << " " << trochanter_dir_vector[1] << " " << trochanter_dir_vector[2] << "\n";
+
+	// remember that we are using OpenGL's z-axis as the conventional 2D x-axis, and the OpenGL x-axis as the conventional y-axis.
+
+	// in conventional maths axes
+	float X = femur_length * cos(femur_pitch);
+	float Y = femur_length * sin(femur_pitch);
+	float Z = 0;
+
+	float ZZ = X * sin(trochanter_yaw);
+	float XX = X * cos(trochanter_yaw);
+	glm::vec3 femur_dir_vector(ZZ, Y, XX);
+
+	glm::vec3 femur_end_pos(
+		trochanter_end_pos[0] + femur_dir_vector[0],
+		trochanter_end_pos[1] + femur_dir_vector[1],
+		trochanter_end_pos[2] + femur_dir_vector[2]);
+
+	float femur_poly_vs[] = {
+		femur_start_pos[0],
+		femur_start_pos[1],
+		femur_start_pos[2],
+		CYAN,
+		femur_end_pos[0],
+		femur_end_pos[1],
+		femur_end_pos[2],
+		CYAN,
+		femur_end_pos[0],
+		femur_end_pos[1],
+		femur_end_pos[2],
+		CYAN,
+	};
+	GLuint femur_VAO, femur_VBO;
+	glGenVertexArrays(1, &femur_VAO);
+	glBindVertexArray(femur_VAO);
+
+	glGenBuffers(1, &femur_VBO);
+	glBindBuffer(GL_ARRAY_BUFFER, femur_VBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(femur_poly_vs), femur_poly_vs, GL_STATIC_DRAW);
+
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void *)(0 * sizeof(float)));
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void *)(3 * sizeof(float)));
+	glEnableVertexAttribArray(1);
+
+	auto get_new_yaw_and_pitch = [&]() {	
+		glm::vec3 trochanter_start_to_effector(
+			P[0] - trochanter_start_pos[0],
+			0,
+			P[2] - trochanter_start_pos[2]);
+
+		float trochanter_target_angle = atan2(trochanter_start_to_effector[0], trochanter_start_to_effector[2]);
+		// ^ the angle trochanter must be in, for the femur to be oriented towards the effector point.
+
+		glm::vec3 new_trochanter_end_pos(
+			trochanter_start_pos[0] + trochanter_length * sin(trochanter_target_angle),
+			trochanter_start_pos[1],
+			trochanter_start_pos[2] + trochanter_length * cos(trochanter_target_angle));
+
+		glm::vec3 new_femur_start_to_effector_direction(
+			P[0] - new_trochanter_end_pos[0],
+			P[1] - new_trochanter_end_pos[1],
+			P[2] - new_trochanter_end_pos[2]
+		);
+		new_femur_start_to_effector_direction = glm::normalize(new_femur_start_to_effector_direction);
+		float new_femur_pitch = asin(new_femur_start_to_effector_direction[1]);
+
+		return std::vector<float>{trochanter_target_angle, new_femur_pitch};
+	};
+
+	while (!glfwWindowShouldClose(window))
+	{
 		i++;
-		//monkeys[0]->vertices = monkeys[0]->s->centered_rotated_vertices[dd];
 		dd++;
-		if (i % 10 == 0) {
-			/*
-			Monkey* tmp = new Monkey(s, pos);
-			monkeys.push_back(tmp);
-			// ^ for memory leak testing
-			*/
-		}
 
-		if (rand() % 200 == 0) {
-			Monkey* tmp = new Monkey(s, pos);
-			monkeys.push_back(tmp);
-		}
-
-		if (bullet_moving) {
-			point_size -= 2;
-			bullet_x -= bullet_animation_horizontal_speed;
-		}
-		if (bullet_x < 0) {
-			bullet_x = 0.214;
-			point_size = 10;
-			bullet_moving = false;
-		}
 		glClearColor(0.0, 0.5, 0.9, 1.0);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		glfwPollEvents();
-
 		glfwGetCursorPos(window, &mouse_x, &mouse_y);
 		glm::mat4 proj = glm::perspective(
-			glm::radians(FOV), (float) D_WIDTH / (float) D_HEIGHT, 0.1f, 100.0f);
+			glm::radians(FOV), (float)D_WIDTH / (float)D_HEIGHT, 0.1f, 100.0f);
 		horizontal_angle = mouse_speed * delay * float(D_WIDTH / 2 - mouse_x);
 		vertical_angle = mouse_speed * delay * float(D_HEIGHT / 2 - mouse_y);
 		horizontal_angle_deg = horizontal_angle * 180 / PI;
@@ -345,63 +530,89 @@ int main()
 			sin(horizontal_angle),
 			sin(vertical_angle),
 			cos(horizontal_angle));
-		if (vertical_angle_deg < -90.0f) {
+		if (vertical_angle_deg < -90.0f)
+		{
 			mouse_y = (D_HEIGHT / 2) - (rad(-90.0f) / (mouse_speed * delay));
 			vertical_angle = rad(-90.0f);
 			glfwSetCursorPos(window, mouse_x, mouse_y);
 		}
-		if (vertical_angle_deg > 90.0f) {
+		if (vertical_angle_deg > 90.0f)
+		{
 			mouse_y = (D_HEIGHT / 2) - (rad(90.0f) / (mouse_speed * delay));
 			vertical_angle = rad(90.0f);
 			glfwSetCursorPos(window, mouse_x, mouse_y);
 		}
-
-		glm::vec3 direction(cos(vertical_angle) * sin(horizontal_angle),
-				    sin(vertical_angle),
-				    cos(vertical_angle) * cos(horizontal_angle));
-
-		glm::vec3 right(sin(horizontal_angle - 3.14f / 2.0f),
-				0,
-				cos(horizontal_angle - 3.14f / 2.0f));
-		glm::vec3 direction_without_pitch(sin(horizontal_angle), 0, cos(horizontal_angle));
-
-		if (in_air) {
-			actual_travel_speed = travel_speed * slowdown_multiplier;
-		} else {
-			actual_travel_speed = travel_speed;
+		if (wireframe)
+		{
+			glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+		}
+		else
+		{
+			glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 		}
 
-		if (freecam) {
-			if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
-				pos += direction * delay * travel_speed;
+		glm::vec3 direction(cos(vertical_angle) * sin(horizontal_angle),
+							sin(vertical_angle),
+							cos(vertical_angle) * cos(horizontal_angle));
+
+		glm::vec3 right(sin(horizontal_angle - 3.14f / 2.0f),
+						0,
+						cos(horizontal_angle - 3.14f / 2.0f));
+		glm::vec3 direction_without_pitch(sin(horizontal_angle), 0, cos(horizontal_angle));
+
+		actual_travel_speed = travel_speed * slowdown_multiplier;
+
+		if (freecam)
+		{
+			if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+			{
+				pos += direction * delay * actual_travel_speed;
 			}
-			if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
-				pos -= direction * delay * travel_speed;
+			if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+			{
+				pos -= direction * delay * actual_travel_speed;
 			}
-		} else {
-			if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
+		}
+		else
+		{
+			if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+			{
 				pos += direction_without_pitch * delay * actual_travel_speed;
 			}
-			if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
+			if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+			{
 				pos -= direction_without_pitch * delay * actual_travel_speed;
 			}
 		}
-		if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
+		if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+		{
 			pos += right * delay * actual_travel_speed;
 		}
-		if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
+		if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+		{
 			pos -= right * delay * actual_travel_speed;
 		}
 
-		if (glfwGetKey(window, GLFW_KEY_V) == GLFW_PRESS) {
+		if (glfwGetKey(window, GLFW_KEY_B) == GLFW_PRESS)
+		{
 			FOV = 20;
-		} else {
+		}
+		else
+		{
 			FOV = 70;
 		}
+		if (glfwGetKey(window, GLFW_KEY_ENTER) == GLFW_PRESS) {
+			std::cout << deg(get_new_yaw_and_pitch()[0]) << " " << deg(get_new_yaw_and_pitch()[1]) << "\n";
+			trochanter_yaw = get_new_yaw_and_pitch()[0];
+			femur_pitch = get_new_yaw_and_pitch()[1];	
+		}
 
-		if (!freecam) {
-			if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) {
-				if (pos[1] == initial_y) {
+		if (!freecam)
+		{
+			if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
+			{
+				if (pos[1] == initial_y)
+				{
 					dy = jump_strength;
 					in_air = true;
 				}
@@ -410,12 +621,14 @@ int main()
 
 			pos[1] += dy;
 
-			if (pos[1] <= initial_y) {
+			if (pos[1] <= initial_y)
+			{
 				dy = 0;
 				pos[1] = initial_y;
 				in_air = false;
 			}
-			if (glfwGetKey(window, GLFW_KEY_C) == GLFW_PRESS && !in_air) {
+			if (glfwGetKey(window, GLFW_KEY_C) == GLFW_PRESS && !in_air)
+			{
 				pos[1] = initial_y - crouch;
 			}
 		}
@@ -425,160 +638,268 @@ int main()
 
 		mvp = proj * view * model;
 
-		for (int i = 0; i < monkeys.size(); i++) {
-			if (monkeys[i]->health <= 0) {
-				delete monkeys[i];
-				monkeys.erase(monkeys.begin() + i);
-			}
-		}
 
-		for (int i = 0; i < monkeys.size(); i++) {
-			float gap = get_distance(monkeys[i]->vertices[0], monkeys[i]->vertices[2], pos[0], pos[2]);
-			if (gap <= visibility) {
-				monkeys[i]->cant_see_player = false;
-				monkeys[i]->move_to_player(pos);
-				monkeys[i]->rotate_to_player(pos);
-			} else {
-				// random movement here
-				monkeys[i]->cant_see_player = true;
-			}
 
-			monkeys[i]->draw(pos, lightpos, model, view, proj);
-			monkeys[i]->handle_random_movement();
-		}
+		// Draw crosshair
+		glUseProgram(program_2d_polygon);
+		glBindVertexArray(poly2_VAO);
+		glBindBuffer(GL_ARRAY_BUFFER, poly2_VBO);
+		glUniform3f(program_2d_polygon_color_l, 1.0, 1.0, 0.0);
+		glLineWidth(1);
+		glDrawArrays(GL_LINES, 0, 8);
 
+
+
+		// Draw x-dir-specifying poly
 		glUseProgram(program_3d_polygon);
 		glBindVertexArray(VAO);
 		glBindBuffer(GL_ARRAY_BUFFER, VBO);
-		glDrawArrays(GL_QUADS, 0, sizeof(vs) / sizeof(vs[0]));
+		glDrawArrays(GL_TRIANGLES, 0, 12);
+		
+		START_WIREFRAME
+		glDrawArrays(GL_TRIANGLES, 12, 24);
+		END_WIREFRAME
 		glUniformMatrix4fv(program_3d_polygon_mvp_l, 1, GL_FALSE, &mvp[0][0]);
 
+		
+		// Control movement of spyder (manually for testing, with keys)
+		if (glfwGetKey(window, GLFW_KEY_Y) == GLFW_PRESS) {
+			//spyder_body.move_x(0.001);
+			P[0] += 0.001;
+		}
+		if (glfwGetKey(window, GLFW_KEY_H) == GLFW_PRESS) {
+			//spyder_body.move_x(-0.001);
+			P[0] -= 0.001;
+		}
+		if (glfwGetKey(window, GLFW_KEY_J) == GLFW_PRESS) {
+			//spyder_body.move_z(0.001);
+			P[2] += 0.001;
+		}
+		if (glfwGetKey(window, GLFW_KEY_G) == GLFW_PRESS) {
+			//spyder_body.move_z(-0.001);
+			P[2] -= 0.001;
+		}
+		if (glfwGetKey(window, GLFW_KEY_T) == GLFW_PRESS) {
+			P[1] += 0.001;
+		}
+		if (glfwGetKey(window, GLFW_KEY_N) == GLFW_PRESS) {
+			P[1] -= 0.001;
+		}
+	float xz_dir_poly_vs[] = {
+		// red and blue rectangle that specifies +x and +z axes respectively.
+		0.0, 0.0, 0.0, RED,
+		0.0, axis_height, 0.0, RED,
+		axis_len, 0.0, 0.0, RED,
+		axis_len, 0.0, 0.0, RED,
+		axis_len,
+		axis_height,
+		0.0,
+		RED,
+		0.0,
+		axis_height,
+		0.0,
+		RED,
+
+		0.0,
+		0.0,
+		0.0,
+		BLUE,
+		0.0,
+		axis_height,
+		0.0,
+		BLUE,
+		0.0,
+		0.0,
+		axis_len,
+		BLUE,
+		0.0,
+		0.0,
+		axis_len,
+		BLUE,
+		0.0,
+		axis_height,
+		axis_len,
+		BLUE,
+		0.0,
+		axis_height,
+		0.0,
+		BLUE,
+
+		P[0]-R/2, P[1]+R/2, P[2]-R/2, YELLOW,    // Cube representing space around the effector point.
+		P[0]-R/2, P[1]-R/2, P[2]-R/2, YELLOW,
+		P[0]+R/2, P[1]-R/2, P[2]-R/2, YELLOW,
+
+		P[0]-R/2, P[1]+R/2, P[2]-R/2, YELLOW,
+		P[0]+R/2, P[1]+R/2, P[2]-R/2, YELLOW,
+		P[0]+R/2, P[1]-R/2, P[2]-R/2, YELLOW,
+
+		P[0]-R/2, P[1]+R/2, P[2]+R/2, YELLOW,
+		P[0]-R/2, P[1]-R/2, P[2]+R/2, YELLOW,
+		P[0]+R/2, P[1]-R/2, P[2]+R/2, YELLOW,
+
+		P[0]-R/2, P[1]+R/2, P[2]+R/2, YELLOW,
+		P[0]+R/2, P[1]+R/2, P[2]+R/2, YELLOW,
+		P[0]+R/2, P[1]-R/2, P[2]+R/2, YELLOW,
+
+
+		P[0]-R/2, P[1]+R/2, P[2]-R/2, YELLOW,
+		P[0]-R/2, P[1]+R/2, P[2]+R/2, YELLOW,
+		P[0]-R/2, P[1]-R/2, P[2]-R/2, YELLOW,
+
+		P[0]-R/2, P[1]-R/2, P[2]-R/2, YELLOW,
+		P[0]-R/2, P[1]-R/2, P[2]+R/2, YELLOW,
+		P[0]-R/2, P[1]+R/2, P[2]+R/2, YELLOW,
+
+		P[0]+R/2, P[1]+R/2, P[2]-R/2, YELLOW,
+  		P[0]+R/2, P[1]+R/2, P[2]+R/2, YELLOW,
+  		P[0]+R/2, P[1]-R/2, P[2]-R/2, YELLOW,
+  
+  		P[0]+R/2, P[1]-R/2, P[2]-R/2, YELLOW,
+  		P[0]+R/2, P[1]-R/2, P[2]+R/2, YELLOW,
+  		P[0]+R/2, P[1]+R/2, P[2]+R/2, YELLOW,
+	};
+	glBufferData(GL_ARRAY_BUFFER, sizeof(xz_dir_poly_vs), xz_dir_poly_vs, GL_STATIC_DRAW);
+
+
+		if (wireframe) {
+			START_WIREFRAME
+		} else {
+			END_WIREFRAME
+		}
+		spyder_body.draw(glm::vec3(0, 10, 0), lightpos, model, view, proj, glm::vec3(BLUE));
+		END_WIREFRAME
+
+		// Move trochanter according to spyder_body position.
+		trochanter_start_pos[0] = orig_trochanter_start_pos[0] + spyder_body.displacement_x;
+		trochanter_start_pos[1] = orig_trochanter_start_pos[1] + spyder_body.displacement_y;
+		trochanter_start_pos[2] = orig_trochanter_start_pos[2] + spyder_body.displacement_z;
+		
+		if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS) {
+			trochanter_yaw -= 0.001;
+		} else if (glfwGetKey(window, GLFW_KEY_E)) {
+			trochanter_yaw += 0.001;
+		}
+
+		glm::vec3 trochanter_end_pos(
+			trochanter_start_pos[0] + trochanter_length * sin(trochanter_yaw),
+			trochanter_start_pos[1],
+			trochanter_start_pos[2] + trochanter_length * cos(trochanter_yaw));
+		trochanter_poly_vs[0] = trochanter_start_pos[0];
+		trochanter_poly_vs[1] = trochanter_start_pos[1];
+		trochanter_poly_vs[2] = trochanter_start_pos[2];
+		trochanter_poly_vs[6] = trochanter_end_pos[0];
+		trochanter_poly_vs[7] = trochanter_end_pos[1];
+		trochanter_poly_vs[8] = trochanter_end_pos[2];
+		trochanter_poly_vs[12] = trochanter_end_pos[0];
+		trochanter_poly_vs[13] = trochanter_end_pos[1];
+		trochanter_poly_vs[14] = trochanter_end_pos[2];
+
+		glBindBuffer(GL_ARRAY_BUFFER, trochanter_VBO);
+		glBufferData(GL_ARRAY_BUFFER, sizeof(trochanter_poly_vs), trochanter_poly_vs, GL_STATIC_DRAW);
+
+		// Move femur
+		femur_start_pos[0] = trochanter_end_pos[0];
+		femur_start_pos[2] = trochanter_end_pos[2];
+		if (glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS) {
+			femur_pitch += 0.001;
+		} else if (glfwGetKey(window, GLFW_KEY_V)) {
+			femur_pitch -= 0.001;
+		}
+
+		glm::vec3 trochanter_dir_vector(
+			trochanter_end_pos[0] - trochanter_start_pos[0],
+			trochanter_end_pos[1] - trochanter_start_pos[1],
+			trochanter_end_pos[2] - trochanter_start_pos[2]);
+		// this vector is guaranteed to lay flat in the xz plane, i.e. not already be pointing 'upwards' or 'downwards' in the y direction.
+		//	std::cout << trochanter_dir_vector[0] << " " << trochanter_dir_vector[1] << " " << trochanter_dir_vector[2] <<  "\n";
+
+		// remember that we are using OpenGL's z-axis as the conventional 2D x-axis, and the OpenGL x-axis as the conventional y-axis.
+		// Below XYZ is in conventional maths axes
+		float X = femur_length * cos(femur_pitch);
+		float Y = femur_length * sin(femur_pitch);
+		float Z = 0;
+
+		float ZZ = X * sin(trochanter_yaw);
+		float XX = X * cos(trochanter_yaw);
+		glm::vec3 femur_dir_vector(ZZ, Y, XX);
+
+		glm::vec3 femur_end_pos(
+			trochanter_end_pos[0] + femur_dir_vector[0],
+			trochanter_end_pos[1] + femur_dir_vector[1],
+			trochanter_end_pos[2] + femur_dir_vector[2]);
+
+		femur_poly_vs[0] = femur_start_pos[0];
+		femur_poly_vs[1] = femur_start_pos[1];
+		femur_poly_vs[2] = femur_start_pos[2];
+		femur_poly_vs[6] = femur_end_pos[0];
+		femur_poly_vs[7] = femur_end_pos[1];
+		femur_poly_vs[8] = femur_end_pos[2];
+		femur_poly_vs[12] = femur_end_pos[0];
+		femur_poly_vs[13] = femur_end_pos[1];
+		femur_poly_vs[14] = femur_end_pos[2];
+
+		glBindBuffer(GL_ARRAY_BUFFER, femur_VBO);
+		glBufferData(GL_ARRAY_BUFFER, sizeof(femur_poly_vs), femur_poly_vs, GL_STATIC_DRAW);
+
+		float trochanter_poly_vs[] = {
+			trochanter_start_pos[0],
+			trochanter_start_pos[1],
+			trochanter_start_pos[2],
+			WHITE,
+			trochanter_end_pos[0],
+			trochanter_end_pos[1],
+			trochanter_end_pos[2],
+			WHITE,
+			trochanter_end_pos[0],
+			trochanter_end_pos[1],
+			trochanter_end_pos[2],
+			WHITE,
+		};
+		glBindBuffer(GL_ARRAY_BUFFER, trochanter_VBO);
+		glBufferData(GL_ARRAY_BUFFER, sizeof(trochanter_poly_vs), trochanter_poly_vs, GL_STATIC_DRAW);
+
+		// Draw trochanter
+		glUseProgram(program_3d_polygon);
+		glBindVertexArray(trochanter_VAO);
+		glBindBuffer(GL_ARRAY_BUFFER, trochanter_VBO);
+		glLineWidth(5);
+		glDrawArrays(GL_LINES, 0, 3);
+		glUniformMatrix4fv(program_3d_polygon_mvp_l, 1, GL_FALSE, &mvp[0][0]);
+
+		// Draw femur
+		glUseProgram(program_3d_polygon);
+		glBindVertexArray(femur_VAO);
+		glBindBuffer(GL_ARRAY_BUFFER, femur_VBO);
+		glLineWidth(5);
+		glDrawArrays(GL_LINES, 0, 3);
+		glUniformMatrix4fv(program_3d_polygon_mvp_l, 1, GL_FALSE, &mvp[0][0]);
+
+
+		// Draw grass ground
+		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 		glBindTexture(GL_TEXTURE_2D, texture);
 		glBindVertexArray(image_VAO);
 		glBindBuffer(GL_ARRAY_BUFFER, image_VBO);
 		glUseProgram(program_3d_image);
-		glDrawArrays(GL_TRIANGLES, 0, 12);
+		glDrawArrays(GL_TRIANGLES, 0, 6);
 		glUniformMatrix4fv(program_3d_image_mvp_l, 1, GL_FALSE, &mvp[0][0]);
 
-		glUseProgram(program_3d_polygon);
-		//        glUniform3f(program_3d_polygon_color_l, 1.0, 1.0, 1.0);
-		//		draw_tris(t);
 
-		glUseProgram(program_3d_polygon);
-		glBegin(GL_LINES);
-
-		ORIGIN
-			glVertex3f(10.0, 0.0, 0.0);
-
-		ORIGIN
-			glVertex3f(0.0, 0.0, 10.0);
-
-		glEnd();
-
-		glBegin(GL_POINTS);
-		glVertex3f(lightpos[0], lightpos[1], lightpos[2]);
-		glEnd();
-		glUniformMatrix4fv(program_3d_polygon_mvp_l, 1, GL_FALSE, &mvp[0][0]);
-
-
-		glUseProgram(program_2d_image);
-		if (!bullet_moving) {
-			if (!click) {
-				glBindTexture(GL_TEXTURE_2D, gun_texture);
-				glBindVertexArray(gun_VAO);
-				glBindBuffer(GL_ARRAY_BUFFER, gun_VBO);
-				glDrawArrays(GL_TRIANGLES, 0, 12);
-			}
-		}
-		if (bullet_moving) {
-			if (!click) {
-				glBindTexture(GL_TEXTURE_2D, gun_texture);
-				glBindVertexArray(gun_VAO);
-				glBindBuffer(GL_ARRAY_BUFFER, gun_VBO);
-				glDrawArrays(GL_TRIANGLES, 0, 12);
-			}
-			if (click) {
-				glBindTexture(GL_TEXTURE_2D, gun_texture);
-				glBindVertexArray(gun_VAO);
-				glBindBuffer(GL_ARRAY_BUFFER, gun_VBO);
-				glDrawArrays(GL_TRIANGLES, 0, 12);
-			}
-		}
-		if (click) {
-			if (!bullet_moving) {
-				// This section of code is ran when the mouse clicks
-				// and not after, when it is held down. Thus,
-				// by putting the health/bullet handling code here,
-				// the shooting and subsequent decrease of monkey health
-				// is in sync with the bullet animation (the dot).
-
-				// NOTE: it seems that write operations to objects in monkeys only take effect on the
-				// original object if array indexing is used, instead of auto m : monkeys.
-				for (int i = 0; i < monkeys.size(); i++) {
-					if (monkeys[i]->hits(pos, d)) {
-						monkeys[i]->health -= bullet_damage;
-					}
-				}
-
-				glBindTexture(GL_TEXTURE_2D, gun_2_texture);
-				glBindVertexArray(gun_2_VAO);
-				glBindBuffer(GL_ARRAY_BUFFER, gun_2_VBO);
-				glDrawArrays(GL_TRIANGLES, 0, 12);
-			}
-			bullet_moving = true;
-
-
-		}
-		click = false;
-
-		if (health <= 0) {
-			//			return 0;
-		}
-		// This check is placed before the code that decreases health in the game loop,
-		// because doing so will allow one more frame for the player to see that
-		// the health is 0 before exiting.
-
-		for (auto m : monkeys) {
-			if (within_tenths(m->vertices[0], pos[0]) && within_tenths(m->vertices[2], pos[2])) {
-				// Doesn't check height
-				// get_distance could be used for this as well
-				// ("diagonal" distance, basically hypotenuse AKA the
-				// shortest line.)
-				health--;
-			}
-		}
 
 		// TODO: fix '-' glyph seems to render as a space
 		// TODO: pack the arguments passed to draw_text that are the same every time into a struct
-		draw_text(
-			string_format("Player asdfhealth: %d", health), 20, D_HEIGHT - 50, 1, 0.0, 1.0, 0.0,
-			glyphs, text_VAO, text_VBO, ortho_mvp,
-			program_2d_text, program_2d_text_mvp_l, program_2d_text_color_l);
+		int textbox_x = 200;
+		draw_text("Spyder project: Robot arm simulation", textbox_x, D_HEIGHT - 50, 1, YELLOW, glyphs, text_VAO, text_VBO, ortho_mvp, program_2d_text, program_2d_text_mvp_l, program_2d_text_color_l);
+		draw_text("Red line points in +X, Blue line points in +Z.", textbox_x, D_HEIGHT - 75, 1, YELLOW, glyphs, text_VAO, text_VBO, ortho_mvp, program_2d_text, program_2d_text_mvp_l, program_2d_text_color_l);
+		draw_text("WASD for player movement, YGHJ for spyder_body movement (testing)", textbox_x, D_HEIGHT - 100, 1, YELLOW, glyphs, text_VAO, text_VBO, ortho_mvp, program_2d_text, program_2d_text_mvp_l, program_2d_text_color_l);
+		draw_text("Q,E to rotate trochanter, R,V to rotate femur up and down", textbox_x, D_HEIGHT - 125, 1, YELLOW, glyphs, text_VAO, text_VBO, ortho_mvp, program_2d_text, program_2d_text_mvp_l, program_2d_text_color_l);
 
-		for (int i = 0; i < monkeys.size(); i++) {
-			float gap = get_distance(monkeys[i]->vertices[0], monkeys[i]->vertices[2], pos[0], pos[2]);
-			draw_text(string_format("Monkey #%d health: %d, distance: %f, aggro: %d", i, monkeys[i]->health, gap, !monkeys[i]->cant_see_player),
-					  20, D_HEIGHT - 75 - i * 25, 1.0, 1.0, 1.0, 1.0, glyphs, text_VAO, text_VBO, ortho_mvp, program_2d_text, program_2d_text_mvp_l, program_2d_text_color_l);
-		}
+		draw_text(string_format("Player Position: (%f, %f, %f)", pos[0], pos[1], pos[2]), textbox_x, D_HEIGHT - 175, 1, YELLOW, glyphs, text_VAO, text_VBO, ortho_mvp, program_2d_text, program_2d_text_mvp_l, program_2d_text_color_l);
+		
+		draw_text(string_format("Trochanter end pos: %f, %f, %f", trochanter_end_pos[0], trochanter_end_pos[1], trochanter_end_pos[2]), textbox_x + 700, D_HEIGHT - 150, 1, YELLOW, glyphs, text_VAO, text_VBO, ortho_mvp, program_2d_text, program_2d_text_mvp_l, program_2d_text_color_l);
+		draw_text(string_format("Joint Angle: Trochanter %f yaw, Femur %f pitch", deg(trochanter_yaw), deg(femur_pitch)), textbox_x, D_HEIGHT - 300, 1, YELLOW, glyphs, text_VAO, text_VBO, ortho_mvp, program_2d_text, program_2d_text_mvp_l, program_2d_text_color_l);
 
-		glUseProgram(program_2d_polygon);
-		glBegin(GL_LINES);
-		// glUniform3f(program_2d_polygon_color_l, 0.0, 1.0, 0.0);
-		// Doesn't work, gets overwritten by next uniform call (must use vertex colors in retained mode)
-		glVertex2f(-0.01, 0.0);
-		glVertex2f(0.01, 0.0);
-		glVertex2f(0.0, -0.01);
-		glVertex2f(0.0, 0.01);
-		glEnd();
 
-		glUseProgram(program_2d_polygon);
-		glUniform3f(program_2d_polygon_color_l, 1.0, 1.0, 0.0);
-		glPointSize(point_size);
-		glBegin(GL_POINTS);
-		glVertex2f(bullet_x, f(bullet_x));
-		glEnd();
-
-		draw_text("TEST", 300, D_HEIGHT - 50, 1, 1.0, 1.0, 1.0, glyphs, text_VAO, text_VBO, ortho_mvp, program_2d_text, program_2d_text_mvp_l, program_2d_text_color_l);
 
 
 		glfwSwapBuffers(window);
@@ -590,6 +911,7 @@ bool within_tenths(float x, float y)
 	return x <= y + 0.1 && x >= y - 0.1;
 }
 
-float f(float x) {
+float f(float x)
+{
 	return -1.02336 * x;
 }

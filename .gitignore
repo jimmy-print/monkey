@@ -1,3 +1,15 @@
 monkey
 monkey.exe
 *.xcf
+
+.vscode
+.vs
+
+include/GL
+include/GLFW
+include/freetype
+include/glm
+libs
+
+freetype.dll
+glfw3.dll

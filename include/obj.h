@@ -37,6 +37,10 @@ public:
 	float x = 0;
 	float z = 0;
 
+	float displacement_x = 0;
+	float displacement_y = 0;
+   	float displacement_z = 0;
+
 	// uniform locations
 	GLuint lightpos_l;
 	GLuint viewpos_l;
@@ -60,7 +64,7 @@ public:
 	void move_to_player(glm::vec3 pos);
 	void rotate(float xdeg, float ydeg, float zdeg);
 	void rotate_to_player(glm::vec3 pos);
-	void draw(glm::vec3 pos, glm::vec3 lightpos, glm::mat4 model, glm::mat4 view, glm::mat4 proj);
+	void draw(glm::vec3 pos, glm::vec3 lightpos, glm::mat4 model, glm::mat4 view, glm::mat4 proj, glm::vec3 color);
 	bool hits(glm::vec3 pos, glm::vec3 direction);
 };
 
