@@ -29,6 +29,7 @@
 #include <utils.h>
 #include <text.h>
 #include <monkey.h>
+#include <assert.h>
 
 bool click = false;
 bool freecam = true;
@@ -144,7 +145,7 @@ int main()
 	glEnable(GL_DEPTH_TEST);
 	glDepthFunc(GL_LESS);
 
-	glm::vec3 P(-0.2, 0.1, 0.8);  // Vector representing location of effector point
+	glm::vec3 P(-0.939192, 0.1, 1.107);  // Vector representing location of effector point
 	float R = 0.08;  // Half the length of the cube surrounding the effector point
 	// 3D polygons section
 	GLuint program_3d_polygon = load_shader("shaders/3d_polygon_vs", "shaders/3d_polygon_fs");
@@ -459,72 +460,87 @@ int main()
 	glEnableVertexAttribArray(1);
 
 	auto get_joint_angles = [&]() {
+		// Currently, joint self-intersections and joint intersection
+		// with spyder body are not considered. Effector positions with zero solutions
+		// are also not handled (just crashes.)
+
 		// Again, all the x,y,z used in this function for variable
 		// names are their equivalents in the math coordinate axes.	
+
 		float endx = P[2]; 
 		float endy = P[0];
 		float endz = P[1];
+
+		std::cout << "End x: " << endx << " End y: " << endy << "End z: " << endz << "\n";
 
 		float startx = trochanter_start_pos[2];
 		float starty = trochanter_start_pos[0];
 		float startz = trochanter_start_pos[1];
 
-		std::cout << "Values:\n";
-		std::cout << "endx: " << endx << ", endy: " << endy << " , endz: " << endz << "\n";
-		std::cout << "startx: " << startx << " " << starty << " " << startz << "\n";
-
 		float l = trochanter_length;
 		float m = femur_length;
 		float n = tibia_length;
 
-		auto r = [&](float th) {
-			return l + m*cos(th) + n*sqrt(1-pow((endz - startz - m * sin(th)) / n, 2));
-		};
-		// Now formulate the F(theta).
-		auto F = [&](float th) {
-			return starty + sqrt(
-					pow(r(th), 2)
-					- pow(endx - startx, 2)) 
-				- endy;
-		};
+		float phi = atan2(endy-starty,endx-startx);
+		trochanter_end_pos[0] = trochanter_start_pos[0] + trochanter_length * sin(phi),
+		trochanter_end_pos[1] = trochanter_start_pos[1],
+		trochanter_end_pos[2] = trochanter_start_pos[2] + trochanter_length * cos(phi);
 
-		float h = 0.000001;
+
+		std::cout << "trochanter_end_x " << trochanter_end_pos[2] << "y: " << trochanter_end_pos[0] << "\n";
+		std::cout << "phi: " << phi << "\n";
+
+		glm::vec3 femur_to_p(endx-trochanter_end_pos[2], endy-trochanter_end_pos[0], endz-trochanter_end_pos[1]);
+		// direction vector from trochanter start to effector point.
 		
+		// with respect to, wrapped around the femur start point , NOT the origin.
+		float P_on_xz_plane_y = 0;
+		float P_on_xz_plane_x = sqrt(pow(femur_to_p[0], 2) + pow(femur_to_p[1], 2));
+		float P_on_xz_plane_z = femur_to_p[2];
+
+		// now solving for the pitches of the femur and tibia simply
+		// becomes a question of 2 joints in 2D.
+
+		std::cout << "turned x: " << P_on_xz_plane_x << ", turned z: " << P_on_xz_plane_z << "\n";
+
+		auto F = [&](float gm) {
+			return -P_on_xz_plane_z + m * sin(acos((P_on_xz_plane_x - n * cos(gm))/m)) + n * sin(gm);
+		};
+		float h = 0.000001;
 		auto get_root_from_input_guess = [&](float guess, int iterations) {
 			float F_output;
 			float dF_output;
-			float theta_guess = guess;
+			float gm_guess = guess;
 			for (int i = 0; i < iterations; i++) {
-    			F_output = F(theta_guess);
-    			dF_output = (F(theta_guess + h) - F(theta_guess)) / h;
-    			theta_guess = theta_guess - (F_output) / (dF_output);
+				F_output = F(gm_guess);
+				dF_output = (F(gm_guess + h) - F(gm_guess)) / h;
+				std::cout << "\t" << gm_guess << ", ";
+				gm_guess = gm_guess - (F_output / dF_output); 
 			}
-			return theta_guess;
+			std::cout << "\n";
+			return gm_guess;
 		};
-		
-		std::vector<float> thetas;
-		for (float init_theta_guess = h; init_theta_guess < (2*PI - h); init_theta_guess += rad(10)) {
-			float theta = get_root_from_input_guess(init_theta_guess, 30);
-			if (theta > 0 && theta < 2 * PI) {
-				thetas.push_back(theta);
+		std::vector<float> gms;
+		for (float init_gm_guess = h; init_gm_guess < (2*PI - h); init_gm_guess += rad(5)) {
+			float gm = get_root_from_input_guess(init_gm_guess, 20);
+			if (gm > 0 && gm < 2 * PI) {
+				gms.push_back(gm);
 			}
 		}
-		std::sort(thetas.begin(), thetas.end());
-		auto ip = std::unique(thetas.begin(), thetas.end(), [](float f, float g) { return std::abs(f - g) < 0.001; });
-		thetas.resize(std::distance(thetas.begin(), ip));
-		for (auto theta : thetas) {
-			std::cout << theta << "\n";
-		}
+		std::sort(gms.begin(), gms.end());
+		auto ip = std::unique(gms.begin(), gms.end(), [](float f, float g) { return std::abs(f - g) < 0.001; });
+		gms.resize(std::distance(gms.begin(), ip));
+		
 
 		std::vector<std::vector<float>> angles;
-		for (auto theta : thetas) {
-			float gamma = asin((endz - startz - m*sin(theta))/n);
-			float phi = acos((endx-startx)/r(theta));
-			angles.push_back(std::vector<float>{phi, theta, gamma});
+		for (auto gm : gms) {
+			float theta = acos((P_on_xz_plane_x - n*cos(gm))/m);
+			angles.push_back(std::vector<float>{phi, theta, gm});
 		}
 		for (auto angle : angles) {
 			std::cout << "Angle: " << angle[0] << " yaw, " << angle[1] << " pitch, " << angle[2] << " pitch\n";
 		}
+		std::cout << "\n";
 		return angles;
 	};
 	std::vector<std::vector<float>> angles = get_joint_angles();
