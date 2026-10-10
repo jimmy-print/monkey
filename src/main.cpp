@@ -17,6 +17,7 @@
 #include <map>
 #include <random>
 #include <algorithm>
+#include <set>
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
@@ -143,7 +144,7 @@ int main()
 	glEnable(GL_DEPTH_TEST);
 	glDepthFunc(GL_LESS);
 
-	glm::vec3 P(-1.8, 0.1, 0.8);  // Vector representing location of effector point
+	glm::vec3 P(-0.2, 0.1, 0.8);  // Vector representing location of effector point
 	float R = 0.08;  // Half the length of the cube surrounding the effector point
 	// 3D polygons section
 	GLuint program_3d_polygon = load_shader("shaders/3d_polygon_vs", "shaders/3d_polygon_fs");
@@ -151,45 +152,21 @@ int main()
 
 	float axis_len = 20.0f;
 	float axis_height = 0.1f;
-	float xz_dir_poly_vs[] = {
+	float poly_vs[] = {
 		// red and blue rectangle that specifies +x and +z axes respectively.
-		0.0, 0.0, 0.0, RED,
-		0.0, axis_height, 0.0, RED,
-		axis_len, 0.0, 0.0, RED,
-		axis_len, 0.0, 0.0, RED,
-		axis_len,
-		axis_height,
-		0.0,
-		RED,
-		0.0,
-		axis_height,
-		0.0,
-		RED,
+		0.0, 0.0, 0.0, 		    RED,
+		0.0, axis_height, 0.0,      RED,
+		axis_len, 0.0, 0.0,         RED,
+		axis_len, 0.0, 0.0,         RED,
+		axis_len, axis_height, 0.0, RED,
+		0.0, axis_height, 0.0,      RED,
 
-		0.0,
-		0.0,
-		0.0,
-		BLUE,
-		0.0,
-		axis_height,
-		0.0,
-		BLUE,
-		0.0,
-		0.0,
-		axis_len,
-		BLUE,
-		0.0,
-		0.0,
-		axis_len,
-		BLUE,
-		0.0,
-		axis_height,
-		axis_len,
-		BLUE,
-		0.0,
-		axis_height,
-		0.0,
-		BLUE,
+		0.0, 0.0, 0.0,		    BLUE,
+		0.0, axis_height, 0.0,      BLUE,
+		0.0, 0.0, axis_len,         BLUE,
+		0.0, 0.0, axis_len,         BLUE,
+		0.0, axis_height, axis_len, BLUE,
+		0.0, axis_height, 0.0,      BLUE,
 
 		P[0]-R/2, P[1]+R/2, P[2]-R/2, YELLOW,    // Cube representing space around the effector point.
 		P[0]-R/2, P[1]-R/2, P[2]-R/2, YELLOW,
@@ -230,7 +207,7 @@ int main()
 
 	glGenBuffers(1, &VBO);
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(xz_dir_poly_vs), xz_dir_poly_vs, GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(poly_vs), poly_vs, GL_STATIC_DRAW);
 
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void *)(0 * sizeof(float)));
 	glEnableVertexAttribArray(0);
@@ -242,37 +219,13 @@ int main()
 	GLuint program_3d_image_mvp_l = glGetUniformLocation(program_3d_image, "mvp");
 	float radius_of_map = 100.f;
 	float image_vs[] = {
-		-radius_of_map,
-		0.0,
-		-radius_of_map,
-		0.0,
-		0.0, // lower left
-		-radius_of_map,
-		0.0,
-		radius_of_map,
-		0.0,
-		5.0, // upper left   the 5.0 means something like 5 to 1 scaling of the floor image.
-		radius_of_map,
-		0.0,
-		-radius_of_map,
-		5.0,
-		0.0, // lower right
+		-radius_of_map, 0.0, -radius_of_map,      0.0, 0.0, // lower left
+		-radius_of_map, 0.0, radius_of_map,		  0.0, 5.0, // upper left. the 5.0 means something like 5 to 1 scaling of the floor image.
+		radius_of_map, 0.0, -radius_of_map,		  5.0, 0.0, // lower right
 
-		-radius_of_map,
-		0.0,
-		radius_of_map,
-		0.0,
-		5.0, // upper left
-		radius_of_map,
-		0.0,
-		radius_of_map,
-		5.0,
-		5.0, // upper right
-		radius_of_map,
-		0.0,
-		-radius_of_map,
-		5.0,
-		0.0, // lower right
+		-radius_of_map, 0.0, radius_of_map,       0.0, 5.0, // upper left
+		radius_of_map, 0.0, radius_of_map,	  5.0, 5.0, // upper right
+		radius_of_map, 0.0, -radius_of_map,	  5.0, 0.0, // lower right
 	};
 	GLuint image_VAO, image_VBO;
 	glGenVertexArrays(1, &image_VAO);
@@ -314,13 +267,13 @@ int main()
 	// Load vs for Crosshair.
 	float crosshair_vs[] = {
 		0.0, 0.0,
-		0.0, 0.1,
+		0.0, 0.05,
 		0.0, 0.0,
-		0.0, -0.1,
+		0.0, -0.05,
 		0.0, 0.0,
-		0.05, 0.0,
+		0.025, 0.0,
 		0.0, 0.0,
-		-0.05, 0.0,
+		-0.025, 0.0,
 	};
 	GLuint poly2_VAO, poly2_VBO;
 	glGenVertexArrays(1, &poly2_VAO);
@@ -393,7 +346,7 @@ int main()
 	// Since trochanter can only rotate in the xz plane from spyder_body,
 	// it only has yaw.
 	
-	float trochanter_yaw = rad(-60);
+	float trochanter_yaw = 1.226330217;//rad(-60);
 	// in radians, where positive means that it rotates counter-clockwise viewed from top.
 	// this is also absolute, relative to world pos.
 
@@ -405,18 +358,9 @@ int main()
 		trochanter_start_pos[2] + trochanter_length * cos(trochanter_yaw));
 
 	float trochanter_poly_vs[] = {
-		trochanter_start_pos[0],
-		trochanter_start_pos[1],
-		trochanter_start_pos[2],
-		WHITE,
-		trochanter_end_pos[0],
-		trochanter_end_pos[1],
-		trochanter_end_pos[2],
-		WHITE,
-		trochanter_end_pos[0],
-		trochanter_end_pos[1],
-		trochanter_end_pos[2],
-		WHITE,
+		trochanter_start_pos[0], trochanter_start_pos[1], trochanter_start_pos[2], RED,
+		trochanter_end_pos[0], trochanter_end_pos[1], trochanter_end_pos[2], RED,
+		trochanter_end_pos[0], trochanter_end_pos[1], trochanter_end_pos[2], RED,
 	};
 	GLuint trochanter_VAO, trochanter_VBO;
 	glGenVertexArrays(1, &trochanter_VAO);
@@ -431,9 +375,11 @@ int main()
 	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void *)(3 * sizeof(float)));
 	glEnableVertexAttribArray(1);
 
+
+
 	// Second leg: femur
-	float femur_length = 0.75;
-	float femur_pitch = rad(-70); // in radians, where positive means that it rotates... the spyder body is on the player's left. then you look at the femur.
+	float femur_length = 0.2;
+	float femur_pitch = 3.95087; // in radians, where positive means that it rotates... the spyder body is on the player's left. then you look at the femur.
 	glm::vec3 femur_start_pos(trochanter_end_pos[0], trochanter_end_pos[1], trochanter_end_pos[2]);
 
 	glm::vec3 trochanter_dir_vector(
@@ -443,16 +389,19 @@ int main()
 	// this vector is guaranteed to lay flat in the xz plane, i.e. not already be pointing 'upwards' or 'downwards' in the y direction.
 	std::cout << trochanter_dir_vector[0] << " " << trochanter_dir_vector[1] << " " << trochanter_dir_vector[2] << "\n";
 
-	// remember that we are using OpenGL's z-axis as the conventional 2D x-axis, and the OpenGL x-axis as the conventional y-axis.
-
 	// in conventional maths axes
-	float X = femur_length * cos(femur_pitch);
-	float Y = femur_length * sin(femur_pitch);
-	float Z = 0;
+	float femur_V_on_xz_plane_x = femur_length * cos(femur_pitch);
+	float femur_V_on_xz_plane_z = femur_length * sin(femur_pitch);
 
-	float ZZ = X * sin(trochanter_yaw);
-	float XX = X * cos(trochanter_yaw);
-	glm::vec3 femur_dir_vector(ZZ, Y, XX);
+	float femur_V_y = femur_V_on_xz_plane_x * sin(trochanter_yaw);
+	float femur_V_x = femur_V_on_xz_plane_x * cos(trochanter_yaw);
+	float femur_V_z = femur_V_on_xz_plane_z;
+	glm::vec3 femur_dir_vector(femur_V_y, femur_V_z, femur_V_x);
+	// so from maths, where it goes
+	// X, Y, Z in order of right hand fingers, to
+	// OpenGL's system, which is
+	// Z, X, Y.
+	// X=>Z, Y=>X, Z=>Y.
 
 	glm::vec3 femur_end_pos(
 		trochanter_end_pos[0] + femur_dir_vector[0],
@@ -460,18 +409,9 @@ int main()
 		trochanter_end_pos[2] + femur_dir_vector[2]);
 
 	float femur_poly_vs[] = {
-		femur_start_pos[0],
-		femur_start_pos[1],
-		femur_start_pos[2],
-		CYAN,
-		femur_end_pos[0],
-		femur_end_pos[1],
-		femur_end_pos[2],
-		CYAN,
-		femur_end_pos[0],
-		femur_end_pos[1],
-		femur_end_pos[2],
-		CYAN,
+		femur_start_pos[0], femur_start_pos[1], femur_start_pos[2], GREEN,
+		femur_end_pos[0], femur_end_pos[1], femur_end_pos[2], GREEN,
+		femur_end_pos[0], femur_end_pos[1], femur_end_pos[2], GREEN,
 	};
 	GLuint femur_VAO, femur_VBO;
 	glGenVertexArrays(1, &femur_VAO);
@@ -486,30 +426,108 @@ int main()
 	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void *)(3 * sizeof(float)));
 	glEnableVertexAttribArray(1);
 
-	auto get_new_yaw_and_pitch = [&]() {	
-		glm::vec3 trochanter_start_to_effector(
-			P[0] - trochanter_start_pos[0],
-			0,
-			P[2] - trochanter_start_pos[2]);
 
-		float trochanter_target_angle = atan2(trochanter_start_to_effector[0], trochanter_start_to_effector[2]);
-		// ^ the angle trochanter must be in, for the femur to be oriented towards the effector point.
 
-		glm::vec3 new_trochanter_end_pos(
-			trochanter_start_pos[0] + trochanter_length * sin(trochanter_target_angle),
-			trochanter_start_pos[1],
-			trochanter_start_pos[2] + trochanter_length * cos(trochanter_target_angle));
-
-		glm::vec3 new_femur_start_to_effector_direction(
-			P[0] - new_trochanter_end_pos[0],
-			P[1] - new_trochanter_end_pos[1],
-			P[2] - new_trochanter_end_pos[2]
-		);
-		new_femur_start_to_effector_direction = glm::normalize(new_femur_start_to_effector_direction);
-		float new_femur_pitch = asin(new_femur_start_to_effector_direction[1]);
-
-		return std::vector<float>{trochanter_target_angle, new_femur_pitch};
+	// Third leg: Tibia
+	float tibia_length = 0.75;
+	float tibia_pitch = -0.56371925;//rad(-70);
+	glm::vec3 tibia_start_pos = glm::vec3(femur_end_pos);
+	// all the below x, y, and z refer to axes as defined in math coordinate system, not OpenGL.
+	float tibia_V_on_xz_plane_x = tibia_length * cos(tibia_pitch);
+	float tibia_V_on_xz_plane_z = tibia_length * sin(tibia_pitch);
+	float tibia_V_y = tibia_V_on_xz_plane_x * sin(trochanter_yaw);
+	float tibia_V_x = tibia_V_on_xz_plane_x * cos(trochanter_yaw);
+	float tibia_V_z = tibia_V_on_xz_plane_z;
+	glm::vec3 tibia_dir_vector(tibia_V_y, tibia_V_z, tibia_V_x);
+	glm::vec3 tibia_end_pos = tibia_start_pos + tibia_dir_vector;
+	float tibia_poly_vs[] = {
+		tibia_start_pos[0], tibia_start_pos[1], tibia_start_pos[2], BLUE,
+		tibia_end_pos[0], tibia_end_pos[1], tibia_end_pos[2], BLUE,
+		tibia_end_pos[0], tibia_end_pos[1], tibia_end_pos[2], BLUE,
 	};
+	GLuint tibia_VAO, tibia_VBO;
+	glGenVertexArrays(1, &tibia_VAO);
+	glBindVertexArray(tibia_VAO);
+
+	glGenBuffers(1, &tibia_VBO);
+	glBindBuffer(GL_ARRAY_BUFFER, tibia_VBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(tibia_poly_vs), tibia_poly_vs, GL_STATIC_DRAW);
+
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void *)(0 * sizeof(float)));
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void *)(3 * sizeof(float)));
+	glEnableVertexAttribArray(1);
+
+	auto get_joint_angles = [&]() {
+		// Again, all the x,y,z used in this function for variable
+		// names are their equivalents in the math coordinate axes.	
+		float endx = P[2]; 
+		float endy = P[0];
+		float endz = P[1];
+
+		float startx = trochanter_start_pos[2];
+		float starty = trochanter_start_pos[0];
+		float startz = trochanter_start_pos[1];
+
+		std::cout << "Values:\n";
+		std::cout << "endx: " << endx << ", endy: " << endy << " , endz: " << endz << "\n";
+		std::cout << "startx: " << startx << " " << starty << " " << startz << "\n";
+
+		float l = trochanter_length;
+		float m = femur_length;
+		float n = tibia_length;
+
+		auto r = [&](float th) {
+			return l + m*cos(th) + n*sqrt(1-pow((endz - startz - m * sin(th)) / n, 2));
+		};
+		// Now formulate the F(theta).
+		auto F = [&](float th) {
+			return starty + sqrt(
+					pow(r(th), 2)
+					- pow(endx - startx, 2)) 
+				- endy;
+		};
+
+		float h = 0.000001;
+		
+		auto get_root_from_input_guess = [&](float guess, int iterations) {
+			float F_output;
+			float dF_output;
+			float theta_guess = guess;
+			for (int i = 0; i < iterations; i++) {
+    			F_output = F(theta_guess);
+    			dF_output = (F(theta_guess + h) - F(theta_guess)) / h;
+    			theta_guess = theta_guess - (F_output) / (dF_output);
+			}
+			return theta_guess;
+		};
+		
+		std::vector<float> thetas;
+		for (float init_theta_guess = h; init_theta_guess < (2*PI - h); init_theta_guess += rad(10)) {
+			float theta = get_root_from_input_guess(init_theta_guess, 30);
+			if (theta > 0 && theta < 2 * PI) {
+				thetas.push_back(theta);
+			}
+		}
+		std::sort(thetas.begin(), thetas.end());
+		auto ip = std::unique(thetas.begin(), thetas.end(), [](float f, float g) { return std::abs(f - g) < 0.001; });
+		thetas.resize(std::distance(thetas.begin(), ip));
+		for (auto theta : thetas) {
+			std::cout << theta << "\n";
+		}
+
+		std::vector<std::vector<float>> angles;
+		for (auto theta : thetas) {
+			float gamma = asin((endz - startz - m*sin(theta))/n);
+			float phi = acos((endx-startx)/r(theta));
+			angles.push_back(std::vector<float>{phi, theta, gamma});
+		}
+		for (auto angle : angles) {
+			std::cout << "Angle: " << angle[0] << " yaw, " << angle[1] << " pitch, " << angle[2] << " pitch\n";
+		}
+		return angles;
+	};
+	std::vector<std::vector<float>> angles = get_joint_angles();
 
 	while (!glfwWindowShouldClose(window))
 	{
@@ -602,9 +620,10 @@ int main()
 			FOV = 70;
 		}
 		if (glfwGetKey(window, GLFW_KEY_ENTER) == GLFW_PRESS) {
-			std::cout << deg(get_new_yaw_and_pitch()[0]) << " " << deg(get_new_yaw_and_pitch()[1]) << "\n";
-			trochanter_yaw = get_new_yaw_and_pitch()[0];
-			femur_pitch = get_new_yaw_and_pitch()[1];	
+			angles = get_joint_angles();
+			trochanter_yaw = angles[0][0];
+			femur_pitch = angles[0][1];
+			tibia_pitch = angles[0][2];
 		}
 
 		if (!freecam)
@@ -685,80 +704,58 @@ int main()
 		if (glfwGetKey(window, GLFW_KEY_N) == GLFW_PRESS) {
 			P[1] -= 0.001;
 		}
-	float xz_dir_poly_vs[] = {
-		// red and blue rectangle that specifies +x and +z axes respectively.
-		0.0, 0.0, 0.0, RED,
-		0.0, axis_height, 0.0, RED,
-		axis_len, 0.0, 0.0, RED,
-		axis_len, 0.0, 0.0, RED,
-		axis_len,
-		axis_height,
-		0.0,
-		RED,
-		0.0,
-		axis_height,
-		0.0,
-		RED,
 
-		0.0,
-		0.0,
-		0.0,
-		BLUE,
-		0.0,
-		axis_height,
-		0.0,
-		BLUE,
-		0.0,
-		0.0,
-		axis_len,
-		BLUE,
-		0.0,
-		0.0,
-		axis_len,
-		BLUE,
-		0.0,
-		axis_height,
-		axis_len,
-		BLUE,
-		0.0,
-		axis_height,
-		0.0,
-		BLUE,
+		float poly_vs[] = {
+		    // red and blue rectangle that specifies +x and +z axes respectively.
+		    0.0, 0.0, 0.0, RED,
+		    0.0, axis_height, 0.0, RED,
+		    axis_len, 0.0, 0.0, RED,
+		    axis_len, 0.0, 0.0, RED,
+		    axis_len, axis_height, 0.0,      RED,
+		    0.0, axis_height, 0.0,      RED,
 
-		P[0]-R/2, P[1]+R/2, P[2]-R/2, YELLOW,    // Cube representing space around the effector point.
-		P[0]-R/2, P[1]-R/2, P[2]-R/2, YELLOW,
-		P[0]+R/2, P[1]-R/2, P[2]-R/2, YELLOW,
+		    0.0, 0.0, 0.0,      BLUE,
+		    0.0, axis_height, 0.0,      BLUE,
+		    0.0, 0.0, axis_len,      BLUE,
+		    0.0, 0.0, axis_len,      BLUE,
+		    0.0, axis_height, axis_len,      BLUE,
+		    0.0, axis_height, 0.0,      BLUE,
 
-		P[0]-R/2, P[1]+R/2, P[2]-R/2, YELLOW,
-		P[0]+R/2, P[1]+R/2, P[2]-R/2, YELLOW,
-		P[0]+R/2, P[1]-R/2, P[2]-R/2, YELLOW,
+		    // Cube representing space around the effector point.
+		    P[0]-R/2, P[1]+R/2, P[2]-R/2, YELLOW,    
+		    P[0]-R/2, P[1]-R/2, P[2]-R/2, YELLOW,
+		    P[0]+R/2, P[1]-R/2, P[2]-R/2, YELLOW,
 
-		P[0]-R/2, P[1]+R/2, P[2]+R/2, YELLOW,
-		P[0]-R/2, P[1]-R/2, P[2]+R/2, YELLOW,
-		P[0]+R/2, P[1]-R/2, P[2]+R/2, YELLOW,
+		    P[0]-R/2, P[1]+R/2, P[2]-R/2, YELLOW,
+		    P[0]+R/2, P[1]+R/2, P[2]-R/2, YELLOW,
+		    P[0]+R/2, P[1]-R/2, P[2]-R/2, YELLOW,
 
-		P[0]-R/2, P[1]+R/2, P[2]+R/2, YELLOW,
-		P[0]+R/2, P[1]+R/2, P[2]+R/2, YELLOW,
-		P[0]+R/2, P[1]-R/2, P[2]+R/2, YELLOW,
+		    P[0]-R/2, P[1]+R/2, P[2]+R/2, YELLOW,
+		    P[0]-R/2, P[1]-R/2, P[2]+R/2, YELLOW,
+		    P[0]+R/2, P[1]-R/2, P[2]+R/2, YELLOW,
+
+		    P[0]-R/2, P[1]+R/2, P[2]+R/2, YELLOW,
+		    P[0]+R/2, P[1]+R/2, P[2]+R/2, YELLOW,
+		    P[0]+R/2, P[1]-R/2, P[2]+R/2, YELLOW,
 
 
-		P[0]-R/2, P[1]+R/2, P[2]-R/2, YELLOW,
-		P[0]-R/2, P[1]+R/2, P[2]+R/2, YELLOW,
-		P[0]-R/2, P[1]-R/2, P[2]-R/2, YELLOW,
+		    P[0]-R/2, P[1]+R/2, P[2]-R/2, YELLOW,
+		    P[0]-R/2, P[1]+R/2, P[2]+R/2, YELLOW,
+		    P[0]-R/2, P[1]-R/2, P[2]-R/2, YELLOW,
 
-		P[0]-R/2, P[1]-R/2, P[2]-R/2, YELLOW,
-		P[0]-R/2, P[1]-R/2, P[2]+R/2, YELLOW,
-		P[0]-R/2, P[1]+R/2, P[2]+R/2, YELLOW,
+		    P[0]-R/2, P[1]-R/2, P[2]-R/2, YELLOW,
+		    P[0]-R/2, P[1]-R/2, P[2]+R/2, YELLOW,
+		    P[0]-R/2, P[1]+R/2, P[2]+R/2, YELLOW,
 
-		P[0]+R/2, P[1]+R/2, P[2]-R/2, YELLOW,
-  		P[0]+R/2, P[1]+R/2, P[2]+R/2, YELLOW,
-  		P[0]+R/2, P[1]-R/2, P[2]-R/2, YELLOW,
+		    P[0]+R/2, P[1]+R/2, P[2]-R/2, YELLOW,
+      		P[0]+R/2, P[1]+R/2, P[2]+R/2, YELLOW,
+      		P[0]+R/2, P[1]-R/2, P[2]-R/2, YELLOW,
   
-  		P[0]+R/2, P[1]-R/2, P[2]-R/2, YELLOW,
-  		P[0]+R/2, P[1]-R/2, P[2]+R/2, YELLOW,
-  		P[0]+R/2, P[1]+R/2, P[2]+R/2, YELLOW,
-	};
-	glBufferData(GL_ARRAY_BUFFER, sizeof(xz_dir_poly_vs), xz_dir_poly_vs, GL_STATIC_DRAW);
+      		P[0]+R/2, P[1]-R/2, P[2]-R/2, YELLOW,
+      		P[0]+R/2, P[1]-R/2, P[2]+R/2, YELLOW,
+      		P[0]+R/2, P[1]+R/2, P[2]+R/2, YELLOW,
+		};
+		glBufferData(GL_ARRAY_BUFFER, sizeof(poly_vs), poly_vs, GL_STATIC_DRAW);
 
 
 		if (wireframe) {
@@ -813,15 +810,15 @@ int main()
 		// this vector is guaranteed to lay flat in the xz plane, i.e. not already be pointing 'upwards' or 'downwards' in the y direction.
 		//	std::cout << trochanter_dir_vector[0] << " " << trochanter_dir_vector[1] << " " << trochanter_dir_vector[2] <<  "\n";
 
-		// remember that we are using OpenGL's z-axis as the conventional 2D x-axis, and the OpenGL x-axis as the conventional y-axis.
-		// Below XYZ is in conventional maths axes
-		float X = femur_length * cos(femur_pitch);
-		float Y = femur_length * sin(femur_pitch);
-		float Z = 0;
+    	// in conventional maths axes
+    	float femur_V_on_xz_plane_x = femur_length * cos(femur_pitch);
+    	float femur_V_on_xz_plane_z = femur_length * sin(femur_pitch);
 
-		float ZZ = X * sin(trochanter_yaw);
-		float XX = X * cos(trochanter_yaw);
-		glm::vec3 femur_dir_vector(ZZ, Y, XX);
+    	float femur_V_y = femur_V_on_xz_plane_x * sin(trochanter_yaw);
+    	float femur_V_x = femur_V_on_xz_plane_x * cos(trochanter_yaw);
+    	float femur_V_z = femur_V_on_xz_plane_z;
+    	glm::vec3 femur_dir_vector(femur_V_y, femur_V_z, femur_V_x);
+
 
 		glm::vec3 femur_end_pos(
 			trochanter_end_pos[0] + femur_dir_vector[0],
@@ -845,15 +842,15 @@ int main()
 			trochanter_start_pos[0],
 			trochanter_start_pos[1],
 			trochanter_start_pos[2],
-			WHITE,
+			RED,
 			trochanter_end_pos[0],
 			trochanter_end_pos[1],
 			trochanter_end_pos[2],
-			WHITE,
+			RED,
 			trochanter_end_pos[0],
 			trochanter_end_pos[1],
 			trochanter_end_pos[2],
-			WHITE,
+			RED,
 		};
 		glBindBuffer(GL_ARRAY_BUFFER, trochanter_VBO);
 		glBufferData(GL_ARRAY_BUFFER, sizeof(trochanter_poly_vs), trochanter_poly_vs, GL_STATIC_DRAW);
@@ -873,6 +870,30 @@ int main()
 		glLineWidth(5);
 		glDrawArrays(GL_LINES, 0, 3);
 		glUniformMatrix4fv(program_3d_polygon_mvp_l, 1, GL_FALSE, &mvp[0][0]);
+
+    	glm::vec3 tibia_start_pos = glm::vec3(femur_end_pos);
+    	// all the below x, y, and z refer to axes as defined in math coordinate system, not OpenGL.
+    	float tibia_V_on_xz_plane_x = tibia_length * cos(tibia_pitch);
+    	float tibia_V_on_xz_plane_z = tibia_length * sin(tibia_pitch);
+    	float tibia_V_y = tibia_V_on_xz_plane_x * sin(trochanter_yaw);
+    	float tibia_V_x = tibia_V_on_xz_plane_x * cos(trochanter_yaw);
+    	float tibia_V_z = tibia_V_on_xz_plane_z;
+    	glm::vec3 tibia_dir_vector(tibia_V_y, tibia_V_z, tibia_V_x);
+    	glm::vec3 tibia_end_pos = tibia_start_pos + tibia_dir_vector;
+    	float tibia_poly_vs[] = {
+    		tibia_start_pos[0], tibia_start_pos[1], tibia_start_pos[2], BLUE,
+    		tibia_end_pos[0], tibia_end_pos[1], tibia_end_pos[2], BLUE,
+    		tibia_end_pos[0], tibia_end_pos[1], tibia_end_pos[2], BLUE,
+    	};
+		// Draw tibia
+		glUseProgram(program_3d_polygon);
+		glBindVertexArray(tibia_VAO);
+		glBindBuffer(GL_ARRAY_BUFFER, tibia_VBO);
+		glBufferData(GL_ARRAY_BUFFER, sizeof(tibia_poly_vs), tibia_poly_vs, GL_STATIC_DRAW);
+		glLineWidth(5);
+		glDrawArrays(GL_LINES, 0, 3);
+		glUniformMatrix4fv(program_3d_polygon_mvp_l, 1, GL_FALSE, &mvp[0][0]);
+
 
 
 		// Draw grass ground
@@ -897,6 +918,8 @@ int main()
 		draw_text(string_format("Player Position: (%f, %f, %f)", pos[0], pos[1], pos[2]), textbox_x, D_HEIGHT - 175, 1, YELLOW, glyphs, text_VAO, text_VBO, ortho_mvp, program_2d_text, program_2d_text_mvp_l, program_2d_text_color_l);
 		
 		draw_text(string_format("Trochanter end pos: %f, %f, %f", trochanter_end_pos[0], trochanter_end_pos[1], trochanter_end_pos[2]), textbox_x + 700, D_HEIGHT - 150, 1, YELLOW, glyphs, text_VAO, text_VBO, ortho_mvp, program_2d_text, program_2d_text_mvp_l, program_2d_text_color_l);
+		draw_text(string_format("Tibia end pos: %f, %f, %f", tibia_end_pos[0], tibia_end_pos[1], tibia_end_pos[2]), textbox_x + 700, D_HEIGHT - 300, 1, YELLOW, glyphs, text_VAO, text_VBO, ortho_mvp, program_2d_text, program_2d_text_mvp_l, program_2d_text_color_l);
+
 		draw_text(string_format("Joint Angle: Trochanter %f yaw, Femur %f pitch", deg(trochanter_yaw), deg(femur_pitch)), textbox_x, D_HEIGHT - 300, 1, YELLOW, glyphs, text_VAO, text_VBO, ortho_mvp, program_2d_text, program_2d_text_mvp_l, program_2d_text_color_l);
 
 
